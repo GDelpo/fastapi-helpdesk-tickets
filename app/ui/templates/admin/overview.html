@@ -1,0 +1,128 @@
+{% extends "admin/base.html" %}
+{% block title %}Resumen — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+  <div>
+    <h2 class="text-xl font-bold">Resumen</h2>
+    <p class="text-sm mt-0.5" style="color: var(--color-text-muted);">Resumen operativo del sistema de tickets</p>
+  </div>
+
+  <!-- Stats cards — 6 cards, identidad/mailsender pattern -->
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-6">
+    <div class="stat-card">
+      <p class="stat-label">Abiertos</p>
+      <p id="stat-open" class="stat-value" style="color: var(--color-info);">—</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">En progreso</p>
+      <p id="stat-in-progress" class="stat-value" style="color: var(--color-accent-hover);">—</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Pendientes</p>
+      <p id="stat-pending" class="stat-value" style="color: var(--color-warning);">—</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Reabiertos</p>
+      <p id="stat-reopened" class="stat-value" style="color: var(--color-warning);">—</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Resueltos</p>
+      <p id="stat-resolved" class="stat-value" style="color: var(--color-success);">—</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Total</p>
+      <p id="stat-total" class="stat-value">—</p>
+    </div>
+  </div>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    <!-- Tickets recientes -->
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color: var(--color-border-subtle);">
+        <h3 class="text-sm font-semibold">Tickets recientes</h3>
+        <a href="{{ base }}/dashboard/tickets/" class="text-xs btn btn-ghost px-2" style="color: var(--color-accent);">Ver todos</a>
+      </div>
+      <div id="recent-tickets" class="divide-y" style="divide-color: var(--color-border-subtle);">
+        <div class="p-4"><div class="skeleton h-4 w-full"></div></div>
+      </div>
+    </div>
+
+    <!-- Por categoría -->
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 border-b" style="border-color: var(--color-border-subtle);">
+        <h3 class="text-sm font-semibold">Tickets por categoría</h3>
+      </div>
+      <div id="queue-stats" class="divide-y" style="divide-color: var(--color-border-subtle);">
+        <div class="p-4"><div class="skeleton h-4 w-full"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  async function loadStats() {
+    const [statsResp, recentResp, queuesResp] = await Promise.all([
+      apiFetch('/stats'),
+      apiFetch('/tickets/?limit=5'),
+      apiFetch('/queues/?active_only=false'),
+    ]);
+
+    if (statsResp?.ok) {
+      const s = await statsResp.json();
+      document.getElementById('stat-open').textContent        = s.open;
+      document.getElementById('stat-in-progress').textContent = s.inProgress;
+      document.getElementById('stat-pending').textContent     = s.pending;
+      document.getElementById('stat-reopened').textContent    = s.reopened;
+      document.getElementById('stat-resolved').textContent    = s.resolved;
+      document.getElementById('stat-total').textContent       = s.total;
+    }
+
+    if (recentResp?.ok) {
+      const d = await recentResp.json();
+      renderRecentTickets(d.data);
+    }
+
+    if (queuesResp?.ok) {
+      const queues = await queuesResp.json();
+      renderQueueStats(queues);
+    }
+  }
+
+  function renderRecentTickets(tickets) {
+    const el = document.getElementById('recent-tickets');
+    if (!tickets.length) {
+      el.innerHTML = '<p class="p-4 text-sm" style="color: var(--color-text-muted);">Sin tickets</p>';
+      return;
+    }
+    el.innerHTML = tickets.map(t => `
+      <a href="${BASE}/dashboard/tickets/${t.id}" class="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-surface-2)] transition-colors">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate" style="color: var(--color-text-primary);">${esc(t.title)}</p>
+          <p class="text-xs mt-0.5" style="color: var(--color-text-muted);">#${t.id.substring(0, 8)} · ${esc(t.queueName || '—')} · ${timeAgo(t.updatedAt)}</p>
+        </div>
+        <div>${statusBadge(t.status)}</div>
+      </a>
+    `).join('');
+  }
+
+  async function renderQueueStats(queues) {
+    const el = document.getElementById('queue-stats');
+    const active = queues.filter(q => q.isActive && q.ticketCount > 0).slice(0, 8);
+    if (!active.length) {
+      el.innerHTML = '<p class="p-4 text-sm" style="color: var(--color-text-muted);">Sin tickets en categorías activas</p>';
+      return;
+    }
+    el.innerHTML = active.map(q => `
+      <div class="flex items-center justify-between px-5 py-3">
+        <span class="text-sm" style="color: var(--color-text-secondary);">${esc(q.name)}</span>
+        <span class="text-sm font-semibold" style="color: var(--color-text-primary);">${q.ticketCount}</span>
+      </div>
+    `).join('');
+  }
+
+  loadStats();
+</script>
+{% endblock %}

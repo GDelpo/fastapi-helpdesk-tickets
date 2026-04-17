@@ -1,0 +1,54 @@
+{# Sidebar navigation partial.
+   Expects: base, service_name, service_icon, nav_items #}
+<aside class="w-60 flex-shrink-0 flex flex-col border-r h-full overflow-y-auto" style="background: var(--color-surface-1); border-color: var(--color-border-subtle);">
+  <div class="p-5 flex items-center gap-3">
+    <div class="flex items-center justify-center w-9 h-9 rounded-xl" style="background: var(--color-accent-soft);">
+      <i data-lucide="{{ service_icon }}" class="w-5 h-5" style="color: var(--color-accent);"></i>
+    </div>
+    <div>
+      <div class="text-sm font-bold tracking-tight">{{ service_name }}</div>
+      <div class="text-[10px] font-medium uppercase tracking-widest" style="color: var(--color-text-muted);">Dashboard</div>
+    </div>
+  </div>
+
+  <nav class="flex-1 px-3 py-2 space-y-1">
+    {% for item in nav_items %}
+    <a href="{{ item.href }}" class="nav-link {% if item.active %}active{% endif %}">
+      <i data-lucide="{{ item.icon }}" class="w-4 h-4"></i>
+      {{ item.label }}
+    </a>
+    {% endfor %}
+  </nav>
+
+  <!-- Plataforma -->
+  <div class="px-3 py-2 border-t" style="border-color: var(--color-border-subtle);">
+    <div class="text-[10px] font-semibold uppercase tracking-widest px-2 py-2" style="color: var(--color-text-muted);">Servicios</div>
+    <div class="grid grid-cols-4 gap-0.5 px-1">
+      <a href="/identidad/dashboard/" target="_blank" title="Identidad" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="shield" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/mailsender/dashboard/" target="_blank" title="Mailsender" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="mail" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/polizas/dashboard/" target="_blank" title="Pólizas" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="scroll-text" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/dispatcher/dashboard/" target="_blank" title="Dispatcher" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="send" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/drive/dashboard/" target="_blank" title="Drive" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="hard-drive" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/storage/dashboard/" target="_blank" title="Storage" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="cloud" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/anulaciones/dashboard/" target="_blank" title="Anulaciones" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="bell-off" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/watcher/dashboard/" target="_blank" title="Watcher" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="eye" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="/legados/dashboard/" target="_blank" title="Legados" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="database" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="http://docs.nobleseguros.com/dashboard/" target="_blank" title="Noble Docu" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="book-open" class="w-4 h-4" aria-hidden="true"></i></a>
+    </div>
+  </div>
+
+  <div class="p-3 border-t" style="border-color: var(--color-border-subtle);">
+    <div class="flex items-center gap-3 px-3 py-2">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background: var(--color-accent-soft); color: var(--color-accent);">
+        <span id="user-initials">A</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div id="user-name" class="text-sm font-medium truncate">Admin</div>
+        <div id="user-role" class="text-[10px] uppercase tracking-wider" style="color: var(--color-text-muted);">admin</div>
+      </div>
+      <button onclick="logout()" class="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" title="Cerrar sesión">
+        <i data-lucide="log-out" class="w-4 h-4" style="color: var(--color-text-muted);"></i>
+      </button>
+    </div>
+  </div>
+</aside>

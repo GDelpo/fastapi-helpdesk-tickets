@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.Python
+*.egg
+
+# Entornos virtuales
+env/
+venv/
+.venv/
+
+# Environment
+.env
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Tests
+.coverage
+.pytest_cache/
+htmlcov/

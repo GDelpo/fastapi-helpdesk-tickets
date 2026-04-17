@@ -1,0 +1,68 @@
+<!--[if mso]><table width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;">
+
+    <tr>
+      <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;padding:28px 32px 24px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#bfdbfe;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">NOBLE SEGUROS</div>
+        <div style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.2;">Mesa de Ayuda</div>
+        <div style="margin-top:10px;display:inline-block;background-color:#fef3c7;border-radius:6px;padding:4px 14px;">
+          <span style="font-size:12px;font-weight:700;color:#92400e;">&#9203; Tu solicitud espera tu respuesta</span>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:28px 32px 16px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+          Tu solicitud <strong>#{{ ticket_id }}</strong> est&aacute; pendiente de tu respuesta desde hace <strong>{{ days_elapsed }} día{{ 's' if days_elapsed != '1' else '' }}</strong>. Si ya fue resuelto, marcalo como resuelto en el portal.
+        </p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 32px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:collapse;overflow:hidden;">
+          <tr>
+            <td bgcolor="#fefce8" style="background-color:#fefce8;padding:10px 16px;border-bottom:1px solid #fde68a;">
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;">Tu solicitud pendiente</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:10px;">{{ ticket_title }}</div>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td width="33%" style="font-size:11px;color:#9ca3af;font-weight:600;padding-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">ID</td>
+                  <td width="33%" style="font-size:11px;color:#9ca3af;font-weight:600;padding-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Categor&iacute;a</td>
+                  <td width="33%" style="font-size:11px;color:#9ca3af;font-weight:600;padding-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Estado</td>
+                </tr>
+                <tr>
+                  <td><code style="font-family:monospace;font-size:11px;background:#e2e8f0;color:#374151;padding:2px 6px;border-radius:3px;">{{ ticket_id }}</code></td>
+                  <td style="font-size:13px;color:#374151;">{{ ticket_queue }}</td>
+                  <td><span style="display:inline-block;background-color:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;">{{ ticket_status }}</span></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:4px 32px 28px;">
+        <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;border-radius:8px;padding:0;">
+              <a href="{{ portal_url }}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Ver mi solicitud &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+{% include "email/_footer.html" %}
+
+</table>
+<!--[if mso]></td></tr></table><![endif]-->

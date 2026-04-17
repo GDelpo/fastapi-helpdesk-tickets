@@ -1,0 +1,111 @@
+# ============================================================================
+# Tickets Service - Docker Compose (Production with Traefik)
+# ============================================================================
+#
+# USAGE:
+#   cd tickets
+#   docker compose --env-file .env -f docker/docker-compose.prod.traefik.yml up -d --build api
+#
+# ACCESS:
+#   Portal:    http://<server>/tickets/portal/
+#   Admin:     http://<server>/tickets/dashboard/
+#   API:       http://<server>/tickets/api/v1/
+#   Health:    http://<server>/tickets/health
+#   Docs:      http://<server>/tickets/docs
+# ============================================================================
+
+name: tickets
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tickets_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tickets}
+      POSTGRES_USER: ${DB_USER:-tickets_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - /opt/microservicios/data/tickets/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tickets_user} -d ${DB_NAME:-tickets}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tickets-internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # Tickets API
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      # admin.css y portal.css se compilan en el Dockerfile (stage frontend-builder)
+    container_name: tickets_api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      # Docker network overrides (container service names)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DEBUG: "false"
+      # Inter-service communication (direct via Docker network, not Traefik)
+      IDENTITY_SERVICE_URL: http://identidad_api:8080/api/v1
+      MAILSENDER_URL: http://mailsender_api:8081/api/v1/emails
+    volumes:
+      - /opt/microservicios/data/tickets/attachments:/data/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - tickets-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    labels:
+      # Traefik routing
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-public"
+
+      traefik.http.routers.tickets.rule: "PathPrefix(`/tickets`)"
+      traefik.http.routers.tickets.service: "tickets"
+      traefik.http.routers.tickets.entrypoints: "web"
+
+      traefik.http.middlewares.tickets-prefix.headers.customrequestheaders.X-Forwarded-Prefix: "/tickets"
+      traefik.http.middlewares.tickets-strip.stripprefix.prefixes: "/tickets"
+
+      traefik.http.routers.tickets.middlewares: "rate-limit@file,tickets-prefix,tickets-strip"
+
+      traefik.http.services.tickets.loadbalancer.server.port: "8000"
+      traefik.http.services.tickets.loadbalancer.healthcheck.path: "/health"
+      traefik.http.services.tickets.loadbalancer.healthcheck.interval: "30s"
+
+networks:
+  traefik-public:
+    external: true
+    name: traefik-public
+  tickets-internal:
+    driver: bridge
+    name: tickets-internal

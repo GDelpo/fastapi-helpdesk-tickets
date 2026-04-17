@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ service_name if service_name else 'Mesa de Ayuda' }}{% endblock %}</title>
+  <link rel="icon" href="{{ company_favicon_url if company_favicon_url else 'data:,' }}">
+
+  <!-- Tailwind v4 (self-hosted browser build) -->
+  <script src="{{ base }}/dashboard/static/js/tailwind-browser.js"></script>
+
+  <!-- DM Sans + JetBrains Mono (self-hosted) -->
+  <link rel="stylesheet" href="{{ base }}/dashboard/static/css/fonts.css"/>
+
+  <!-- Lucide Icons (self-hosted) — load in <head> so icons are available immediately -->
+  <script src="{{ base }}/dashboard/static/js/lucide.min.js"></script>
+
+  <!-- APP_META must be injected BEFORE constants.js loads -->
+  <script>const APP_META = {{ meta | tojson }};</script>
+  <script src="{{ base }}/dashboard/static/js/constants.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+      /* Noble brand-inspired palette — slate base with blue accent */
+      --color-surface-0: #0b0f1a;
+      --color-surface-1: #111827;
+      --color-surface-2: #1e293b;
+      --color-surface-3: #334155;
+      --color-border-subtle: #1e293b;
+      --color-border-default: #334155;
+
+      --color-text-primary: #f1f5f9;
+      --color-text-secondary: #94a3b8;
+      --color-text-muted: #64748b;
+
+      --color-accent: #3b82f6;
+      --color-accent-hover: #60a5fa;
+      --color-accent-soft: rgba(59, 130, 246, 0.12);
+
+      --color-success: #22c55e;
+      --color-success-soft: rgba(34, 197, 94, 0.12);
+      --color-warning: #f59e0b;
+      --color-warning-soft: rgba(245, 158, 11, 0.12);
+      --color-error: #ef4444;
+      --color-error-soft: rgba(239, 68, 68, 0.12);
+      --color-info: #06b6d4;
+      --color-info-soft: rgba(6, 182, 212, 0.12);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--color-surface-0); }
+    ::-webkit-scrollbar-thumb { background: var(--color-surface-3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+    /* Status badges */
+    .badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tracking-wide uppercase whitespace-nowrap; }
+    .badge-open { background: var(--color-info-soft); color: var(--color-info); }
+    .badge-in_progress { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+    .badge-pending { background: var(--color-warning-soft); color: var(--color-warning); }
+    .badge-reopened { background: var(--color-warning-soft); color: var(--color-warning); }
+    .badge-resolved { background: var(--color-success-soft); color: var(--color-success); }
+    .badge-closed { background: var(--color-surface-3); color: var(--color-text-muted); }
+
+    .badge-critical { background: var(--color-error-soft); color: var(--color-error); }
+    .badge-high { background: var(--color-warning-soft); color: var(--color-warning); }
+    .badge-normal { background: var(--color-info-soft); color: var(--color-info); }
+    .badge-low { background: var(--color-success-soft); color: var(--color-success); }
+    .badge-verylow { background: var(--color-surface-3); color: var(--color-text-muted); }
+
+    /* Role badges */
+    .badge-admin { background: var(--color-warning-soft); color: var(--color-warning); }
+    .badge-employee { background: var(--color-info-soft); color: var(--color-info); }
+    .badge-agent { background: var(--color-success-soft); color: var(--color-success); }
+    .badge-service { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+
+    /* Card component */
+    .card {
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border-subtle);
+      @apply rounded-xl;
+    }
+
+    /* Table styling */
+    .data-table th {
+      @apply text-left text-xs font-medium uppercase tracking-wider py-3 px-4;
+      color: var(--color-text-muted);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .data-table td {
+      @apply py-3 px-4 text-sm;
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .data-table tr:hover td { background: var(--color-surface-2); }
+    .data-table tr { cursor: pointer; }
+
+    /* Button styles */
+    .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150; }
+    .btn-primary { background: var(--color-accent); color: white; }
+    .btn-primary:hover { background: var(--color-accent-hover); }
+    .btn-ghost { color: var(--color-text-secondary); }
+    .btn-ghost:hover { background: var(--color-surface-2); color: var(--color-text-primary); }
+    .btn-danger { background: var(--color-error-soft); color: var(--color-error); }
+    .btn-danger:hover { background: var(--color-error); color: white; }
+
+    /* Input */
+    .input {
+      @apply w-full px-3 py-2 rounded-lg text-sm outline-none transition-all;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-default);
+      color: var(--color-text-primary);
+    }
+    .input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-soft); }
+    .input::placeholder { color: var(--color-text-muted); }
+
+    /* Select */
+    .select {
+      @apply px-3 py-2 rounded-lg text-sm outline-none appearance-none cursor-pointer;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-default);
+      color: var(--color-text-primary);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 32px;
+    }
+    .select:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-soft); }
+
+    /* Textarea */
+    .textarea {
+      @apply w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-all;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-default);
+      color: var(--color-text-primary);
+    }
+    .textarea:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-soft); }
+    .textarea::placeholder { color: var(--color-text-muted); }
+
+    /* Stat card */
+    .stat-card {
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border-subtle);
+      @apply rounded-xl p-5 flex flex-col gap-1;
+    }
+    .stat-value { @apply text-3xl font-bold tracking-tight; color: var(--color-text-primary); }
+    .stat-label { @apply text-xs font-medium uppercase tracking-wider; color: var(--color-text-muted); }
+
+    /* Loading skeleton */
+    .skeleton {
+      @apply rounded;
+      background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-3) 50%, var(--color-surface-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Toast */
+    .toast {
+      @apply fixed bottom-6 right-6 px-4 py-3 rounded-lg text-sm font-medium shadow-2xl z-50 transition-all duration-300;
+      transform: translateY(20px); opacity: 0;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-success { background: var(--color-success); color: white; }
+    .toast-error { background: var(--color-error); color: white; }
+
+    /* Nav link */
+    .nav-link {
+      @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all;
+      color: var(--color-text-muted);
+    }
+    .nav-link:hover { background: var(--color-surface-2); color: var(--color-text-secondary); }
+    .nav-link.active { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+
+    /* Fade in */
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Modal */
+    .modal-overlay { @apply fixed inset-0 z-50 flex items-center justify-center p-4; background: rgba(0, 0, 0, 0.7); }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      @apply w-full max-w-lg space-y-4 rounded-xl p-6;
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border-default);
+    }
+
+    {% block extra_styles %}{% endblock %}
+  </style>
+</head>
+
+<body class="font-sans antialiased" style="background: var(--color-surface-0); color: var(--color-text-primary);">
+
+{% block body %}
+<div id="app-shell" class="flex h-screen overflow-hidden">
+  {% include "admin/_sidebar.html" %}
+  <main class="flex-1 overflow-y-auto">
+    {% include "admin/_topbar.html" %}
+    <div id="page-content" class="p-6 fade-in">
+      {% block page_content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% include "shared/_toast.html" %}
+
+<script>
+  const BASE     = "{{ base }}";
+  const API_BASE = BASE + '/api/v1';
+</script>
+
+{# Helpers: formatDate, timeAgo, esc, openModal, closeModal #}
+<script>
+  // ========================================================================
+  // FORMATTERS
+  // ========================================================================
+  function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Ahora';
+    if (mins < 60) return mins + ' min';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h';
+    return Math.floor(hrs / 24) + 'd';
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ========================================================================
+  // MODAL HELPERS
+  // ========================================================================
+  function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+</script>
+
+{# Auth JS: apiFetch, getToken, getUser, isAdmin, goLogin, logout #}
+<script>
+  const TOKEN_KEY = 'tk_token';
+  const USER_KEY = 'tk_user';
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }
+  function getUser() { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
+  function isAdmin() { const u = getUser(); return u && (u.role === 'admin' || u.role === 'service'); }
+
+  async function apiFetch(path, opts = {}) {
+    const token = getToken();
+    if (!token) { goLogin(); return null; }
+    const resp = await fetch(API_BASE + path, {
+      ...opts,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json',
+        ...(opts.headers || {}),
+      },
+    });
+    if (resp.status === 401 || resp.status === 403) { goLogin(); return null; }
+    return resp;
+  }
+
+  function goLogin() { clearToken(); window.location.href = BASE + '/dashboard/login'; }
+  function logout() { goLogin(); }
+
+  {% block init_shell %}
+  (function initShell() {
+    if (!getToken()) { goLogin(); return; }
+    const user = getUser();
+    if (user) {
+      // Empleados no tienen acceso al dashboard de admin — redirigir al portal
+      if (!isAdmin()) {
+        window.location.href = BASE + '/portal/';
+        return;
+      }
+      const nameEl = document.getElementById('user-name');
+      const roleEl = document.getElementById('user-role');
+      const initEl = document.getElementById('user-initials');
+      if (nameEl) nameEl.textContent = user.userName || 'Admin';
+      if (roleEl) roleEl.textContent = user.role || 'admin';
+      if (initEl) initEl.textContent = (user.userName || 'A')[0].toUpperCase();
+    }
+  })();
+  {% endblock %}
+
+  function refreshCurrentPage() { location.reload(); }
+</script>
+
+<script src="{{ base }}/dashboard/static/js/mentions.js"></script>
+<script src="{{ base }}/dashboard/static/js/attachments.js"></script>
+
+{% block page_scripts %}{% endblock %}
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

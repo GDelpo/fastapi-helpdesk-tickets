@@ -1,0 +1,114 @@
+<!--[if mso]><table width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;">
+
+    <!-- Header azul -->
+    <tr>
+      <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;padding:28px 32px 24px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#bfdbfe;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">NOBLE SEGUROS</div>
+        <div style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.2;">Mesa de Ayuda</div>
+        <div style="margin-top:10px;display:inline-block;background-color:#ffffff;border-radius:6px;padding:4px 14px;">
+          <span style="font-size:12px;font-weight:700;color:#1d4ed8;">&#10003; Ticket recibido</span>
+        </div>
+      </td>
+    </tr>
+
+    <!-- Cuerpo -->
+    <tr>
+      <td style="padding:28px 32px 0;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#111827;">Hola, {{ submitter_name }}</p>
+        <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.6;">
+          Tu ticket se cre&oacute; correctamente en la categor&iacute;a <strong>{{ ticket_queue }}</strong>.{% if staff_name %} Fue asignado a <strong>{{ staff_name }}</strong>.{% endif %} Te notificaremos cuando haya novedades.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Card ticket -->
+    <tr>
+      <td style="padding:0 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;border-collapse:collapse;overflow:hidden;">
+          <tr>
+            <td bgcolor="#eff6ff" style="background-color:#eff6ff;padding:10px 16px;border-bottom:1px solid #dbeafe;">
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#1e40af;">Detalle del ticket</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="font-size:12px;color:#6b7280;font-weight:600;">ID</td>
+                  <td align="right"><code style="font-family:'Courier New',monospace;font-size:12px;background:#e2e8f0;color:#374151;padding:2px 8px;border-radius:4px;">{{ ticket_id }}</code></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+              <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Asunto</div>
+              <div style="font-size:14px;font-weight:700;color:#111827;">{{ ticket_title }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td width="50%">
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Categor&iacute;a</div>
+                    <div style="font-size:13px;color:#374151;">{{ ticket_queue }}</div>
+                  </td>
+                  <td width="50%">
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Prioridad</div>
+                    <div style="font-size:13px;color:#374151;">{{ ticket_priority }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                {% if staff_name %}
+                <tr>
+                  <td width="50%">
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Responsable</div>
+                    <div style="font-size:13px;color:#374151;">{{ staff_name }}</div>
+                  </td>
+                  <td width="50%">
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Estado</div>
+                    <span style="display:inline-block;background-color:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">{{ ticket_status }}</span>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td>
+                    <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Estado</div>
+                    <span style="display:inline-block;background-color:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">{{ ticket_status }}</span>
+                  </td>
+                </tr>
+                {% endif %}
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- CTA -->
+    <tr>
+      <td style="padding:24px 32px;">
+        <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;border-radius:8px;padding:0;">
+              <a href="{{ portal_url }}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Ver mi ticket &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">O copi&aacute; el ID <code style="font-family:monospace;background:#f1f5f9;padding:1px 6px;border-radius:3px;">{{ ticket_id }}</code> y buscalo desde el portal.</p>
+      </td>
+    </tr>
+
+{% include "email/_footer.html" %}
+
+</table>
+<!--[if mso]></td></tr></table><![endif]-->

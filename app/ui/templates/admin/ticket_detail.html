@@ -1,0 +1,497 @@
+{% extends "admin/base.html" %}
+{% block title %}Ticket #{{ ticket_id }} — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="space-y-4" id="ticket-container">
+  <!-- Back -->
+  <a href="{{ base }}/dashboard/tickets/" class="inline-flex items-center gap-2 text-sm btn btn-ghost px-0" style="color: var(--color-text-muted);">
+    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+    Volver a tickets
+  </a>
+
+  <!-- Ticket header -->
+  <div class="card p-6 space-y-4" id="ticket-header">
+    <div class="flex items-start justify-between gap-4">
+      <div class="space-y-1 flex-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span id="tk-id" class="font-mono text-xs" style="color: var(--color-text-muted);">#{{ ticket_id }}</span>
+          <span id="tk-status"></span>
+          <span id="tk-priority"></span>
+        </div>
+        <h2 id="tk-title" class="text-xl font-bold">
+          <div class="skeleton h-6 w-64"></div>
+        </h2>
+        <p id="tk-meta" class="text-xs" style="color: var(--color-text-muted);">Cargando…</p>
+      </div>
+      <div class="flex gap-2" id="tk-actions" data-admin-only>
+        <button onclick="openModal('modal-edit')" class="btn btn-ghost text-xs">
+          <i data-lucide="edit" class="w-3.5 h-3.5"></i> Editar
+        </button>
+        <button onclick="confirmClose()" class="btn btn-danger text-xs">
+          <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Cerrar
+        </button>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div id="tk-description" class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+      <div class="skeleton h-4 w-full mb-2"></div>
+      <div class="skeleton h-4 w-3/4"></div>
+    </div>
+
+    <!-- Ticket attachments -->
+    <div id="tk-attachments-block" class="hidden">
+      <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--color-text-muted);">Adjuntos</div>
+      <div id="tk-attachments" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Meta row -->
+    <div class="grid grid-cols-2 gap-4 pt-2 border-t text-xs" style="border-color: var(--color-border-subtle); color: var(--color-text-muted);">
+      <div><span class="uppercase tracking-wider">Categoría</span><div id="tk-queue" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+      <div><span class="uppercase tracking-wider">Asignado a</span><div id="tk-assigned" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">Sin asignar</div></div>
+      <div><span class="uppercase tracking-wider">Solicitante</span><div id="tk-submitter" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+      <div><span class="uppercase tracking-wider">Creado</span><div id="tk-created" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+    </div>
+
+    <!-- Resolution -->
+    <div id="tk-resolution-block" class="hidden rounded-lg p-3 text-sm" style="background: var(--color-success-soft); color: var(--color-success);">
+      <div class="flex items-center gap-2 font-medium mb-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Resolución</div>
+      <p id="tk-resolution"></p>
+    </div>
+  </div>
+
+  <!-- Tickets relacionados -->
+  <div class="card">
+    <div class="px-5 py-3 flex items-center justify-between border-b" style="border-color: var(--color-border-subtle);">
+      <h3 class="text-sm font-semibold flex items-center gap-2">
+        <i data-lucide="link" class="w-4 h-4" style="color: var(--color-text-muted);"></i>
+        Tickets relacionados
+      </h3>
+      <button onclick="toggleAddRelation()" class="btn btn-ghost btn-sm text-xs">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Agregar
+      </button>
+    </div>
+    <div id="relations-list" class="divide-y" style="border-color: var(--color-border-subtle);"></div>
+    <!-- Formulario agregar relación -->
+    <div id="add-relation-form" class="hidden p-4 border-t space-y-3" style="border-color: var(--color-border-subtle); background: var(--color-surface-2);">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="relative">
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Buscar ticket</label>
+          <input type="text" id="relation-search-input" class="input text-sm"
+                 placeholder="Escribí título o ID…"
+                 oninput="searchRelationTickets(this.value)" autocomplete="off" />
+          <input type="hidden" id="relation-target-id" />
+          <div id="relation-suggestions"
+               class="hidden absolute z-20 w-full mt-1 rounded-lg shadow-xl overflow-hidden"
+               style="background: var(--color-surface-1); border: 1px solid var(--color-border-default);">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Tipo de relación</label>
+          <select id="relation-type" class="select w-full text-sm">
+            <option value="related">Relacionado con</option>
+            <option value="duplicate">Duplicado de</option>
+            <option value="blocks">Bloquea a</option>
+            <option value="blocked_by">Bloqueado por</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="toggleAddRelation()" class="btn btn-ghost btn-sm">Cancelar</button>
+        <button type="button" onclick="saveRelation()" class="btn btn-primary btn-sm">
+          <i data-lucide="link" class="w-3.5 h-3.5"></i> Vincular
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Follow-ups timeline -->
+  <div class="space-y-3">
+    <h3 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--color-text-muted);">Actividad</h3>
+    <div id="followups-list" class="space-y-3"></div>
+  </div>
+
+  <!-- Add followup form -->
+  <div class="card p-5">
+    <h3 class="text-sm font-semibold mb-3">Agregar respuesta</h3>
+    <form id="form-followup" class="space-y-3">
+      <textarea id="fu-comment" class="textarea" rows="4" placeholder="Escribí tu comentario…" required></textarea>
+      <div class="flex items-center gap-3 flex-wrap" data-admin-only>
+        <select id="fu-status" class="select">
+          <!-- Populated via JS -->
+        </select>
+        <div class="flex-1">
+          <input type="text" id="fu-resolution" class="input" placeholder="Resolución (si cambia a Resuelto)…" />
+        </div>
+      </div>
+      <!-- File attachment -->
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="document.getElementById('fu-files').click()" class="btn btn-ghost text-xs">
+          <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Adjuntar archivos
+        </button>
+        <input id="fu-files" type="file" class="hidden" multiple />
+      </div>
+      <div id="fu-files-preview" class="flex flex-wrap gap-2 mt-2"></div>
+      <div id="fu-error" class="hidden text-sm rounded-lg px-3 py-2" style="background: var(--color-error-soft); color: var(--color-error);"></div>
+      <div class="flex justify-end">
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          Enviar respuesta
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar ticket (admin) -->
+<div id="modal-edit" class="modal-overlay hidden" data-admin-only>
+  <div class="modal">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Editar Ticket</h3>
+      <button onclick="closeModal('modal-edit')" class="btn btn-ghost p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="form-edit" class="space-y-3">
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Estado</label>
+        <select id="edit-status" class="select w-full">
+          <!-- Populated via JS -->
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Prioridad</label>
+        <select id="edit-priority" class="select w-full">
+          <!-- Populated via JS -->
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Asignado a</label>
+        <select id="edit-assigned" class="select w-full">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Resolución</label>
+        <textarea id="edit-resolution" class="textarea" rows="3"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeModal('modal-edit')" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const TICKET_ID = "{{ ticket_id }}";
+  let ticket = null;
+
+  // Populate selects from APP_META via constants.js helpers
+  document.getElementById('edit-status').innerHTML = buildStatusOptions('Sin cambio');
+  document.getElementById('edit-priority').innerHTML = buildPriorityOptions('Sin cambio');
+  document.getElementById('fu-status').innerHTML = buildStatusOptions('Sin cambio de estado');
+
+  // Inicializar mentions y attachments
+  initMentions('fu-comment', API_BASE);
+  const fuAttachments = initAttachments({ inputId: 'fu-files', previewId: 'fu-files-preview', maxMb: 10 });
+
+  async function loadTicket() {
+    const resp = await apiFetch('/tickets/' + TICKET_ID);
+    if (!resp || !resp.ok) {
+      showToast('Error al cargar ticket', 'error');
+      return;
+    }
+    ticket = await resp.json();
+    renderTicket(ticket);
+    renderFollowUps(ticket.followups || []);
+    renderRelations(ticket.relations || []);
+  }
+
+  function renderTicket(t) {
+    document.getElementById('tk-status').innerHTML = statusBadge(t.status);
+    document.getElementById('tk-priority').innerHTML = priorityBadge(t.priority);
+    document.getElementById('tk-title').textContent = t.title;
+    document.getElementById('tk-meta').textContent =
+      `Abierto por ${t.createdByName || t.submitterEmail} · ${formatDate(t.createdAt)}`;
+    document.getElementById('tk-description').textContent = t.description;
+    document.getElementById('tk-queue').textContent = t.queueName || '—';
+    document.getElementById('tk-assigned').textContent = t.assignedTo || 'Sin asignar';
+    document.getElementById('tk-submitter').textContent = t.submitterEmail || '—';
+    document.getElementById('tk-created').textContent = formatDate(t.createdAt);
+    if (t.resolution) {
+      document.getElementById('tk-resolution').textContent = t.resolution;
+      document.getElementById('tk-resolution-block').classList.remove('hidden');
+    }
+    document.getElementById('edit-status').value = t.status;
+    document.getElementById('edit-priority').value = t.priority;
+    document.getElementById('edit-resolution').value = t.resolution || '';
+    if (t.assignedTo) document.getElementById('edit-assigned').value = t.assignedTo;
+
+    // Adjuntos del ticket (excluir los de followups)
+    const tkAtts = (t.attachments || []).filter(a => !a.followupId);
+    const tkAttBlock = document.getElementById('tk-attachments-block');
+    const tkAttList  = document.getElementById('tk-attachments');
+    if (tkAttBlock && tkAtts.length) {
+      tkAttBlock.classList.remove('hidden');
+      tkAttList.innerHTML = tkAtts.map(a => `
+        <div class="inline-flex items-center gap-1">
+          ${renderAttachmentLink(a)}
+          <button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})"
+            class="btn btn-ghost p-1 text-xs" style="color: var(--color-error);" title="Eliminar adjunto">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>`).join('');
+      lucide.createIcons();
+    }
+
+    lucide.createIcons();
+  }
+
+  function renderFollowUps(followups) {
+    const container = document.getElementById('followups-list');
+    if (!followups.length) {
+      container.innerHTML = '<p class="text-sm" style="color: var(--color-text-muted);">Sin actividad aún.</p>';
+      return;
+    }
+    container.innerHTML = followups.map(f => {
+      // System events (no userId) → compact inline entry
+      if (!f.userId) {
+        const badge = f.newStatus ? statusBadge(f.newStatus) + ' '
+                    : f.newPriority ? priorityBadge(f.newPriority) + ' '
+                    : '';
+        const byUser = f.userName ? ` <span style="color: var(--color-surface-3);">— @${esc(f.userName)}</span>` : '';
+        return `
+          <div class="flex items-center gap-2 py-1 text-xs" style="color: var(--color-text-muted);">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background: var(--color-surface-2);">
+              <i class="fas fa-circle text-[5px]" style="color: var(--color-text-muted);"></i>
+            </span>
+            <span class="flex-1 flex items-center gap-1.5 flex-wrap">${badge}${esc(f.comment)}${byUser}</span>
+            <span class="whitespace-nowrap shrink-0" style="color: var(--color-surface-3);">${timeAgo(f.createdAt)}</span>
+          </div>`;
+      }
+      // User comments → full card
+      return `
+        <div class="card p-4 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium" style="color: var(--color-text-primary);">${esc(f.userName || '—')}</span>
+            <span class="text-xs" style="color: var(--color-text-muted);">${formatDate(f.createdAt)}</span>
+          </div>
+          ${f.newStatus ? `<div class="text-xs">${statusBadge(f.newStatus)}</div>` : ''}
+          <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">${esc(f.comment)}</p>
+          ${(f.attachments || []).length ? `<div class="flex flex-wrap gap-2 mt-1">${(f.attachments || []).map(a => `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})" class="btn btn-ghost p-1" style="color: var(--color-error);" title="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>`).join('')}</div>` : ''}
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  async function loadAssignableUsers() {
+    if (!isAdmin()) return;
+    const resp = await apiFetch('/identity/users?role=employee');
+    if (!resp || !resp.ok) return;
+    const users = await resp.json();
+    const sel = document.getElementById('edit-assigned');
+    users.forEach(u => {
+      sel.innerHTML += `<option value="${esc(u.userName)}">${esc(u.userName)}${u.mail ? ' — ' + u.mail : ''}</option>`;
+    });
+    if (ticket?.assignedTo) sel.value = ticket.assignedTo;
+  }
+
+  document.getElementById('form-followup').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('fu-error');
+    errEl.classList.add('hidden');
+    const newStatus = document.getElementById('fu-status').value;
+    const body = {
+      comment: document.getElementById('fu-comment').value.trim(),
+      isPublic: true,
+    };
+    if (newStatus) body.newStatus = newStatus;
+
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/followups/', {
+      method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.status === 201) {
+      const followup = await resp.json();
+      document.getElementById('fu-comment').value = '';
+      document.getElementById('fu-status').value = '';
+      showToast('Respuesta enviada');
+
+      // Subir adjuntos si los hay
+      if (fuAttachments.getFiles().length) {
+        await fuAttachments.uploadTo(TICKET_ID, followup.id);
+      }
+
+      const resText = document.getElementById('fu-resolution')?.value?.trim();
+      if (newStatus && resText) {
+        await apiFetch('/tickets/' + TICKET_ID, {
+          method: 'PATCH', body: JSON.stringify({ resolution: resText }), headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      loadTicket();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      errEl.textContent = err.message || 'Error al enviar';
+      errEl.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('form-edit').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const assignedVal = document.getElementById('edit-assigned').value;
+    const body = {
+      status: document.getElementById('edit-status').value || undefined,
+      priority: parseInt(document.getElementById('edit-priority').value),
+      assignedTo: assignedVal || null,
+      resolution: document.getElementById('edit-resolution').value.trim() || null,
+    };
+    const resp = await apiFetch('/tickets/' + TICKET_ID, {
+      method: 'PATCH', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.ok) {
+      closeModal('modal-edit');
+      showToast('Ticket actualizado');
+      loadTicket();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al guardar', 'error');
+    }
+  });
+
+  async function confirmClose() {
+    if (!confirm('¿Cerrar este ticket?')) return;
+    const resp = await apiFetch('/tickets/' + TICKET_ID, { method: 'DELETE' });
+    if (resp && resp.ok) {
+      showToast('Ticket cerrado');
+      setTimeout(() => window.location.href = BASE + '/dashboard/tickets/', 1000);
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al cerrar el ticket', 'error');
+    }
+  }
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+
+  const RELATION_META = {
+    related:    { label: 'Relacionado con', icon: 'link' },
+    duplicate:  { label: 'Duplicado de',    icon: 'copy' },
+    blocks:     { label: 'Bloquea a',       icon: 'ban' },
+    blocked_by: { label: 'Bloqueado por',   icon: 'shield-off' },
+  };
+
+  function renderRelations(relations) {
+    const list = document.getElementById('relations-list');
+    if (!relations.length) {
+      list.innerHTML = `<p class="px-5 py-3 text-sm" style="color: var(--color-text-muted);">Sin tickets relacionados.</p>`;
+      return;
+    }
+    list.innerHTML = relations.map(r => {
+      const meta = RELATION_META[r.relationType] || { label: r.relationType, icon: 'link' };
+      const shortId = r.targetTicketId.substring(0, 8);
+      const title = esc(r.targetTitle || shortId);
+      const statusHtml = r.targetStatus ? statusBadge(r.targetStatus) : '';
+      return `<div class="flex items-center gap-3 px-5 py-2.5">
+        <span class="text-xs font-medium shrink-0" style="color: var(--color-text-muted);">
+          <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 inline-block mr-1"></i>${meta.label}
+        </span>
+        <a href="${BASE}/dashboard/tickets/${r.targetTicketId}"
+           class="text-sm font-medium flex-1 truncate hover:underline"
+           style="color: var(--color-accent-hover);"
+           title="${title}">#${shortId} — ${title}</a>
+        ${statusHtml}
+        <button onclick="deleteRelation('${r.id}')"
+                class="btn btn-ghost btn-sm p-1 shrink-0" title="Eliminar relación">
+          <i data-lucide="x" class="w-3.5 h-3.5" style="color: var(--color-text-muted);"></i>
+        </button>
+      </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  function toggleAddRelation() {
+    const form = document.getElementById('add-relation-form');
+    const hidden = form.classList.toggle('hidden');
+    if (!hidden) {
+      document.getElementById('relation-search-input').focus();
+      document.getElementById('relation-target-id').value = '';
+      document.getElementById('relation-search-input').value = '';
+    }
+    document.getElementById('relation-suggestions').classList.add('hidden');
+  }
+
+  let _relSearchTimer = null;
+  async function searchRelationTickets(q) {
+    clearTimeout(_relSearchTimer);
+    const suggestions = document.getElementById('relation-suggestions');
+    if (!q || q.length < 2) { suggestions.classList.add('hidden'); return; }
+    _relSearchTimer = setTimeout(async () => {
+      const resp = await apiFetch('/tickets/?search=' + encodeURIComponent(q) + '&limit=8&include_closed=true');
+      if (!resp || !resp.ok) return;
+      const data = await resp.json();
+      const tickets = (data.data || []).filter(t => t.id !== TICKET_ID);
+      suggestions.classList.toggle('hidden', !tickets.length);
+      suggestions.innerHTML = tickets.map(t =>
+        `<div onclick="selectRelationTicket('${t.id}', ${JSON.stringify(esc(t.title))})"
+              class="px-3 py-2 text-sm cursor-pointer hover:opacity-75 transition"
+              style="color: var(--color-text-primary);">
+           <span class="font-mono text-xs" style="color: var(--color-text-muted);">#${t.id.substring(0,8)}</span>
+           ${esc(t.title)}
+         </div>`
+      ).join('');
+    }, 280);
+  }
+
+  function selectRelationTicket(id, title) {
+    document.getElementById('relation-target-id').value = id;
+    document.getElementById('relation-search-input').value = title;
+    document.getElementById('relation-suggestions').classList.add('hidden');
+  }
+
+  async function saveRelation() {
+    const targetId = document.getElementById('relation-target-id').value.trim();
+    const relationType = document.getElementById('relation-type').value;
+    if (!targetId) { showToast('Buscá y seleccioná un ticket primero', 'warning'); return; }
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/', {
+      method: 'POST',
+      body: JSON.stringify({ targetTicketId: targetId, relationType }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.status === 201) {
+      showToast('Relación agregada');
+      toggleAddRelation();
+      loadTicket();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al agregar la relación', 'error');
+    }
+  }
+
+  async function deleteRelation(relationId) {
+    if (!confirm('¿Eliminar esta relación?')) return;
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/' + relationId, { method: 'DELETE' });
+    if (resp && resp.status === 204) {
+      showToast('Relación eliminada');
+      loadTicket();
+    } else {
+      showToast('Error al eliminar la relación', 'error');
+    }
+  }
+
+  async function deleteAttachment(ticketId, attachmentId, filename) {
+    if (!confirm(`¿Eliminar adjunto "${filename}"?`)) return;
+    const resp = await apiFetch(`/tickets/${ticketId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+    });
+    if (resp && resp.status === 204) {
+      showToast('Adjunto eliminado');
+      loadTicket();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al eliminar adjunto', 'error');
+    }
+  }
+
+  loadTicket();
+  if (isAdmin()) loadAssignableUsers();
+</script>
+{% endblock %}

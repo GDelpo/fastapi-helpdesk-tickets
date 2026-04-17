@@ -1,0 +1,816 @@
+{% extends "portal/shell.html" %}
+{% block title %}Ticket — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="max-w-2xl mx-auto space-y-4 py-8">
+
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-sm">
+    <a href="{{ base }}/portal/tickets/" class="text-gray-400 hover:text-blue-600 transition-colors no-underline flex items-center gap-1">
+      <i class="fas fa-arrow-left"></i>Mis Tickets
+    </a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-700 font-semibold font-mono text-xs bg-gray-100 px-2 py-0.5 rounded" id="tk-id-display">—</span>
+  </div>
+
+  <!-- Ticket card -->
+  <div class="card shadow-sm p-5 space-y-4" id="ticket-card">
+    <!-- ID + status + priority badges -->
+    <div>
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
+        <span class="font-mono text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded select-all" id="tk-id-badge">—</span>
+        <span id="tk-status"></span>
+        <span id="tk-priority-badge" class="badge"></span>
+      </div>
+      <h1 id="tk-title" class="text-lg font-bold text-gray-800">
+        <div class="skeleton h-5 w-64"></div>
+      </h1>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-xs text-gray-400" id="tk-meta">Cargando...</div>
+
+      <!-- Acciones de edición (visible para creador o responsable actual) -->
+      <div id="edit-actions-area" class="hidden mt-2.5 space-y-2">
+        <!-- Botones disparadores -->
+        <div id="edit-triggers" class="flex items-center gap-3 flex-wrap">
+          <button onclick="openReassignForm()"
+                  class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors">
+            <i class="fas fa-user-edit text-[10px]"></i>Reasignar responsable
+          </button>
+          <button onclick="openPriorityForm()"
+                  class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors">
+            <i class="fas fa-flag text-[10px]"></i>Cambiar prioridad
+          </button>
+        </div>
+        <!-- Formulario de reasignación -->
+        <div id="reassign-form" class="hidden items-start gap-2">
+          <div class="relative flex-1">
+            <!-- Chip: visible cuando hay un usuario seleccionado -->
+            <div id="reassign-chip" class="hidden items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 rounded-md">
+              <div id="reassign-chip-avatar"
+                   class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0"></div>
+              <span id="reassign-chip-name" class="text-sm font-medium text-gray-800 flex-1 truncate"></span>
+              <button type="button" onclick="clearReassign()"
+                      class="text-gray-400 hover:text-red-500 transition-colors ml-1 shrink-0 leading-none"
+                      aria-label="Quitar responsable">×</button>
+            </div>
+            <!-- Input: visible cuando no hay selección -->
+            <div id="reassign-input-wrap" class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <i class="fas fa-user text-xs"></i>
+              </span>
+              <input type="text" id="reassign-input" class="input text-sm input-icon-left"
+                     placeholder="Buscar por usuario o email..." autocomplete="off" />
+            </div>
+            <div id="reassign-suggestions"
+                 class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
+            <input type="hidden" id="reassign-id" />
+          </div>
+          <button onclick="saveReassign()" class="btn btn-primary text-xs px-3 whitespace-nowrap">
+            <i class="fas fa-check"></i>Asignar
+          </button>
+          <button onclick="cancelReassignForm()" class="btn btn-secondary text-xs px-3">
+            Cancelar
+          </button>
+        </div>
+        <!-- Formulario de prioridad -->
+        <div id="priority-form" class="hidden items-center gap-2">
+          <select id="priority-select" class="select text-sm flex-1"></select>
+          <button onclick="savePriority()" class="btn btn-primary text-xs px-3 whitespace-nowrap">
+            <i class="fas fa-check"></i>Guardar
+          </button>
+          <button onclick="cancelPriorityForm()" class="btn btn-secondary text-xs px-3">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Descripción</div>
+      <div id="tk-description" class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+        <div class="skeleton h-4 w-full mb-2"></div>
+        <div class="skeleton h-4 w-3/4"></div>
+      </div>
+    </div>
+
+    <!-- Ticket attachments -->
+    <div id="ticket-attachments-block" class="hidden">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Adjuntos del ticket</div>
+      <div id="ticket-attachments" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Resolution (hidden unless resolved/closed) -->
+    <div id="tk-resolution-block" class="hidden rounded-lg p-4 text-sm border border-green-200 bg-green-50">
+      <div class="flex items-center gap-2 font-semibold text-green-700 mb-1.5">
+        <i class="fas fa-check-circle"></i>Resolución
+      </div>
+      <p id="tk-resolution" class="text-green-600 leading-relaxed"></p>
+    </div>
+
+    <!-- Status action bars (contextual, only one visible at a time except pending) -->
+
+    <!-- open / in_progress / reopened: green bar -->
+    <div id="status-action-open" class="hidden flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+      <div class="flex items-center gap-2 text-sm text-green-800">
+        <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+        <span>¿El ticket fue resuelto? Podés cerrarlo vos mismo.</span>
+      </div>
+      <button onclick="changeStatus('resolved')"
+              class="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+        <i class="fas fa-check mr-1"></i>Marcar como Resuelto
+      </button>
+    </div>
+
+    <!-- resolved: yellow bar -->
+    <div id="status-action-resolved" class="hidden flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+      <div class="flex items-center gap-2 text-sm text-yellow-800">
+        <i class="fas fa-exclamation-circle text-yellow-500 flex-shrink-0"></i>
+        <span>¿Sigue pendiente?</span>
+      </div>
+      <button onclick="changeStatus('reopened')"
+              class="flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+        <i class="fas fa-redo mr-1"></i>Reabrir
+      </button>
+    </div>
+
+    <!-- pending: orange bar (info) -->
+    <div id="status-action-pending" class="hidden flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm text-orange-800">
+      <i class="fas fa-clock text-orange-500 flex-shrink-0"></i>
+      <span>El responsable está esperando información tuya. Respondé en el comentario de abajo.</span>
+    </div>
+
+    <!-- closed: gray bar -->
+    <div id="status-action-closed" class="hidden flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-500">
+      <i class="fas fa-lock flex-shrink-0"></i>
+      <span>Este ticket está cerrado.</span>
+    </div>
+  </div>
+
+  <!-- Tickets relacionados -->
+  <div id="relations-section" class="card shadow-sm overflow-hidden">
+    <div class="section-header">
+      <div class="section-label">Tickets relacionados</div>
+      <button onclick="toggleAddRelation()"
+              class="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center gap-1">
+        <i class="fas fa-plus text-[10px]"></i>Agregar
+      </button>
+    </div>
+    <div id="relations-list"></div>
+    <!-- Add relation form -->
+    <div id="add-relation-form" class="hidden p-4 border-t border-gray-100 space-y-3 bg-gray-50">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="relative">
+          <label class="text-xs font-semibold text-gray-600 mb-1 block">
+            Buscar ticket <span class="font-normal text-gray-400">(título o ID)</span>
+          </label>
+          <input type="text" id="relation-search-input" class="input text-sm"
+                 placeholder="Escribí para buscar..."
+                 oninput="searchRelationTickets(this.value)" autocomplete="off" />
+          <div id="relation-suggestions"
+               class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
+          <input type="hidden" id="relation-target-id" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-600 mb-1 block">Tipo de relación</label>
+          <select id="relation-type" class="select text-sm">
+            <option value="related">Relacionado con</option>
+            <option value="duplicate">Duplicado de</option>
+            <option value="blocks">Bloquea a</option>
+            <option value="blocked_by">Bloqueado por</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2 justify-end">
+        <button onclick="toggleAddRelation()" class="btn btn-secondary text-xs h-8 px-3">Cancelar</button>
+        <button onclick="saveRelation()" class="btn btn-primary text-xs h-8 px-3">
+          <i class="fas fa-link mr-1"></i>Vincular
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div>
+    <div class="section-label mb-3">Actividad</div>
+    <div id="followups-list" class="space-y-3">
+      <div class="skeleton h-16 rounded-xl"></div>
+    </div>
+  </div>
+
+  <!-- Reply form (hidden when closed) -->
+  <div id="reply-section" class="card shadow-sm">
+    <div class="section-header">
+      <div class="section-label">Agregar comentario</div>
+    </div>
+    <div class="p-4 space-y-3">
+      <div>
+        <label for="fu-comment" class="field-label">
+          Comentario <span class="text-red-500">*</span>
+          <span class="text-xs text-gray-400 ml-1">(escribí @ para mencionar a alguien)</span>
+        </label>
+        <textarea id="fu-comment" class="textarea text-sm" rows="4"
+                  placeholder="Describí tu respuesta o información adicional. Usá @nombre para notificar a alguien."></textarea>
+      </div>
+
+      <div>
+        <label class="field-label">Adjuntos <span class="text-gray-400 font-normal text-xs">(opcional)</span></label>
+        <div id="fu-files-preview" class="mb-2 flex flex-wrap gap-2"></div>
+        <p class="text-xs text-gray-400 mb-2">PDF, PNG, JPG, DOCX, XLSX y más. Máximo 10 MB por archivo.</p>
+        <div id="fu-drop-zone"
+             class="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center bg-gray-50 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
+             onclick="document.getElementById('fu-files').click()">
+          <i class="fas fa-paperclip text-xl text-gray-300 block mx-auto mb-1"></i>
+          <p class="text-xs text-gray-500">Arrastrá archivos acá o</p>
+          <span class="text-xs text-blue-600 font-semibold hover:text-blue-800 transition-colors">seleccionar archivos</span>
+          <input id="fu-files" type="file" class="hidden" multiple />
+        </div>
+      </div>
+
+      <div id="fu-error" class="hidden text-sm rounded-lg px-3.5 py-2.5 bg-red-50 text-red-600 border border-red-100 flex items-center gap-2"></div>
+      <div class="flex gap-3 pt-1">
+        <button onclick="confirmClear()"
+                class="btn btn-secondary flex-1 justify-center">
+          Limpiar formulario
+        </button>
+        <button id="btn-send" onclick="sendFollowUp()"
+                class="btn btn-primary flex-1">
+          <i class="fas fa-paper-plane"></i>Enviar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: confirmar limpiar formulario -->
+<div id="modal-clear" class="modal-overlay hidden" onclick="if(event.target===this) closeClearModal()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-clear-title">
+    <div class="flex items-start gap-3">
+      <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+        <i class="fas fa-trash-alt text-amber-500"></i>
+      </div>
+      <div>
+        <h3 id="modal-clear-title" class="text-base font-semibold text-slate-800">¿Limpiar el formulario?</h3>
+        <p class="mt-1 text-sm text-slate-500">Se borrará el texto que escribiste y los archivos que hayas adjuntado. Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button onclick="closeClearModal()" class="btn btn-secondary flex-1 justify-center">
+        Cancelar
+      </button>
+      <button onclick="doClear()" class="btn flex-1 justify-center bg-amber-500 hover:bg-amber-600 text-white font-semibold">
+        Sí, limpiar
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const TICKET_ID = "{{ ticket_id }}";
+  let ticket = null;
+
+  const _fuAttachments = initAttachments({
+    inputId:    'fu-files',
+    previewId:  'fu-files-preview',
+    dropZoneId: 'fu-drop-zone',
+    maxMb: 10,
+  });
+  initMentions('fu-comment', API_BASE);
+
+  function confirmClear() {
+    document.getElementById('modal-clear').classList.remove('hidden');
+  }
+  function closeClearModal() {
+    document.getElementById('modal-clear').classList.add('hidden');
+  }
+  function doClear() {
+    document.getElementById('fu-comment').value = '';
+    document.getElementById('fu-error').classList.add('hidden');
+    _fuAttachments.clear();
+    closeClearModal();
+    showToast('Formulario limpiado.', 'info');
+  }
+
+  /** Escapa HTML y luego convierte @usuario en badges azules inline. */
+  function markupMentions(rawText) {
+    return esc(rawText).replace(/@([\w.]+)/g,
+      '<span class="mention-inline">@$1</span>');
+  }
+
+  async function loadTicket() {
+    const resp = await apiFetch('/tickets/' + TICKET_ID);
+    if (!resp || !resp.ok) { showToast('Error al cargar el ticket', 'error'); return; }
+    ticket = await resp.json();
+    renderTicket(ticket);
+    renderFollowUps(ticket.followups || []);
+    renderRelations(ticket.relations || []);
+  }
+
+  function renderTicket(t) {
+    const id8 = t.id.substring(0, 8);
+    document.getElementById('tk-id-display').textContent = id8;
+    document.getElementById('tk-id-badge').textContent = id8;
+    document.getElementById('tk-status').innerHTML = statusBadge(t.status);
+
+    const priBadge = document.getElementById('tk-priority-badge');
+    priBadge.innerHTML = priorityBadge(t.priority);
+
+    document.getElementById('tk-title').textContent = t.title;
+
+    const metaParts = [
+      `<span class="inline-flex items-center gap-1"><i class="fas fa-user text-[10px]"></i>Abierto por vos</span>`,
+      `<span class="inline-flex items-center gap-1"><i class="fas fa-calendar text-[10px]"></i>Creado: ${formatDate(t.createdAt)}</span>`,
+      `<span class="inline-flex items-center gap-1"><i class="fas fa-clock text-[10px]"></i>Actualizado: ${formatDate(t.updatedAt)}</span>`,
+      `<span class="inline-flex items-center gap-1"><i class="fas fa-folder text-[10px]"></i>${esc(t.queueName || '—')}</span>`,
+    ];
+    if (t.assignedTo) {
+      metaParts.push(`<span class="inline-flex items-center gap-1"><i class="fas fa-user-tie text-[10px]"></i>Asignado: ${esc(t.assignedTo)}</span>`);
+    }
+    document.getElementById('tk-meta').innerHTML = metaParts.join('');
+
+    document.getElementById('tk-description').textContent = t.description;
+
+    // Resolution block
+    if (t.resolution) {
+      document.getElementById('tk-resolution').textContent = t.resolution;
+      document.getElementById('tk-resolution-block').classList.remove('hidden');
+    } else {
+      document.getElementById('tk-resolution-block').classList.add('hidden');
+    }
+
+    const ticketAttachments = (t.attachments || []).filter(a => !a.followupId);
+    const tkAttBlock = document.getElementById('ticket-attachments-block');
+    const tkAttList = document.getElementById('ticket-attachments');
+    if (ticketAttachments.length) {
+      tkAttBlock.classList.remove('hidden');
+      tkAttList.innerHTML = ticketAttachments.map(a => renderAttachmentWithDelete(a)).join('');
+    } else {
+      tkAttBlock.classList.add('hidden');
+      tkAttList.innerHTML = '';
+    }
+
+    // Status action bars
+    const openBar     = document.getElementById('status-action-open');
+    const resolvedBar = document.getElementById('status-action-resolved');
+    const pendingBar  = document.getElementById('status-action-pending');
+    const closedBar   = document.getElementById('status-action-closed');
+    [openBar, resolvedBar, pendingBar, closedBar].forEach(el => {
+      el.classList.add('hidden');
+      el.style.display = '';
+    });
+
+    if (['open', 'in_progress', 'reopened'].includes(t.status)) {
+      openBar.classList.remove('hidden'); openBar.style.display = 'flex';
+    } else if (t.status === 'resolved') {
+      resolvedBar.classList.remove('hidden'); resolvedBar.style.display = 'flex';
+    } else if (t.status === 'pending') {
+      pendingBar.classList.remove('hidden'); pendingBar.style.display = 'flex';
+      // Pending users can still resolve
+      openBar.classList.remove('hidden'); openBar.style.display = 'flex';
+    } else if (t.status === 'closed') {
+      closedBar.classList.remove('hidden'); closedBar.style.display = 'flex';
+      document.getElementById('reply-section').classList.add('hidden');
+    }
+
+    // Mostrar acciones de edición al creador o al responsable actual
+    const me = getUser()?.userName || '';
+    const canEdit = me && (t.submitterUsername === me || t.assignedTo === me);
+    document.getElementById('edit-actions-area').classList.toggle('hidden', !canEdit);
+    // Pre-popular select de prioridad con el valor actual
+    document.getElementById('priority-select').innerHTML = buildPriorityOptions('').replace(
+      `<option value="${t.priority}">`, `<option value="${t.priority}" selected>`
+    );
+    cancelReassignForm();
+    cancelPriorityForm();
+  }
+
+  function renderFollowUps(followups) {
+    const container = document.getElementById('followups-list');
+    const allAttachments = (ticket?.attachments || []);
+    const byFollowup = {};
+    for (const a of allAttachments) {
+      if (a.followupId) {
+        if (!byFollowup[a.followupId]) byFollowup[a.followupId] = [];
+        byFollowup[a.followupId].push(a);
+      }
+    }
+
+    if (!followups.length) {
+      container.innerHTML = '<p class="text-sm text-gray-400 py-2">Sin actividad aún.</p>';
+      return;
+    }
+    container.innerHTML = followups.map(f => {
+      // System events (no userId) → compact inline entry
+      if (!f.userId) {
+        const badge = f.newStatus ? statusBadge(f.newStatus) + ' '
+                    : f.newPriority ? priorityBadge(f.newPriority) + ' '
+                    : '';
+        const byUser = f.userName
+          ? ` <span class="text-gray-300">—</span> <span class="mention-actor">@${esc(f.userName)}</span>`
+          : '';
+        return `
+          <div class="flex items-center gap-2 py-1 text-xs text-gray-400">
+            <span class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+              <i class="fas fa-circle text-[5px] text-gray-400"></i>
+            </span>
+            <span class="flex-1 flex items-center gap-1.5 flex-wrap">${badge}${markupMentions(f.comment)}${byUser}</span>
+            <span class="text-gray-300 whitespace-nowrap shrink-0">${timeAgo(f.createdAt)}</span>
+          </div>`;
+      }
+
+      // User comments → full card
+      const isStaff = f.isStaff === true;
+      const name = isStaff ? esc(f.userName || '—') : 'Vos';
+      const initials = (f.userName || '?').slice(0, 1).toUpperCase();
+      const avatarBg = isStaff ? '#2563eb' : '#64748b';
+      const staffBadge = isStaff
+        ? `<span class="ml-1.5 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">Responsable</span>`
+        : '';
+      const mentions = (f.mentions || []).map(m => `<span class="mention-tag"><i class="fas fa-at text-[10px]"></i>${esc(m)}</span>`).join('');
+      const mentionBlock = mentions ? `<div class="flex flex-wrap gap-1.5 mt-2">${mentions}</div>` : '';
+      const attachments = (byFollowup[f.id] || []).map(a => renderAttachmentWithDelete(a)).join('');
+      const attachmentBlock = attachments ? `<div class="mt-2 flex flex-wrap gap-2">${attachments}</div>` : '';
+
+      return `
+        <div class="followup ${isStaff ? 'staff' : ''}">
+          <div class="flex items-center gap-2.5 mb-2">
+            <div class="avatar" style="background:${avatarBg};color:white;">${initials}</div>
+            <div class="flex items-center flex-wrap gap-1">
+              <span class="text-sm font-semibold ${isStaff ? 'text-blue-700' : 'text-gray-700'}">${name}</span>
+              ${staffBadge}
+            </div>
+            <span class="ml-auto text-xs text-gray-400 whitespace-nowrap">${formatDate(f.createdAt)}</span>
+          </div>
+          <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${esc(f.comment)}</p>
+          ${mentionBlock}
+          ${attachmentBlock}
+        </div>`;
+    }).join('');
+  }
+
+  async function changeStatus(newStatus) {
+    const resp = await apiFetch('/tickets/' + TICKET_ID, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.ok) {
+      const statusNames = { resolved: 'Resuelto', reopened: 'Reabierto' };
+      showToast(`Ticket marcado como <strong>${statusNames[newStatus] || newStatus}</strong>.`,
+                newStatus === 'resolved' ? 'success' : 'warning');
+      loadTicket();
+    } else {
+      showToast('Error al actualizar el estado', 'error');
+    }
+  }
+
+  async function sendFollowUp() {
+    const errEl = document.getElementById('fu-error');
+    const btn = document.getElementById('btn-send');
+    errEl.classList.add('hidden');
+
+    const comment = document.getElementById('fu-comment').value.trim();
+    if (!comment) {
+      errEl.textContent = 'El comentario no puede estar vacío.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/followups/', {
+      method: 'POST',
+      body: JSON.stringify({ comment, isPublic: true }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar';
+
+    if (resp && resp.status === 201) {
+      const followup = await resp.json();
+
+      if (_fuAttachments && _fuAttachments.getFiles().length) {
+        await _fuAttachments.uploadTo(TICKET_ID, followup.id);
+      }
+
+      document.getElementById('fu-comment').value = '';
+      showToast('Comentario enviado.', 'success');
+      loadTicket();
+    } else {
+      const err = resp ? await resp.json().catch(() => ({})) : {};
+      const msg = err.message || 'Error al enviar el comentario.';
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+      showToast(msg, 'error');
+    }
+  }
+
+  // ─ Relations ─
+  const RELATION_META = {
+    related:    { label: 'Relacionado con', icon: 'fa-link',           color: 'text-blue-500' },
+    duplicate:  { label: 'Duplicado de',    icon: 'fa-copy',           color: 'text-yellow-600' },
+    blocks:     { label: 'Bloquea a',       icon: 'fa-ban',            color: 'text-red-500' },
+    blocked_by: { label: 'Bloqueado por',   icon: 'fa-hand-paper',     color: 'text-orange-500' },
+  };
+
+  function renderRelations(relations) {
+    const list = document.getElementById('relations-list');
+    if (!relations.length) {
+      list.innerHTML = `
+        <div class="px-4 py-3 text-xs text-gray-400 flex items-center gap-2">
+          <i class="fas fa-link text-gray-200"></i>
+          Sin tickets relacionados aún.
+        </div>`;
+      return;
+    }
+    list.innerHTML = relations.map(r => {
+      const meta = RELATION_META[r.relationType] || { label: r.relationType, icon: 'fa-link', color: 'text-gray-500' };
+      const targetId = r.targetTicketId.substring(0, 8);
+      const statusHtml = r.targetStatus ? statusBadge(r.targetStatus) : '';
+      return `
+        <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-t border-gray-100 first:border-t-0">
+          <i class="fas ${meta.icon} ${meta.color} text-xs flex-shrink-0 w-4 text-center"></i>
+          <span class="text-xs text-gray-400 w-28 flex-shrink-0">${meta.label}</span>
+          <a href="${BASE}/portal/tickets/${r.targetTicketId}"
+             class="flex items-center gap-2 flex-1 min-w-0 no-underline group">
+            <span class="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">${esc(targetId)}</span>
+            <span class="text-sm text-gray-700 group-hover:text-blue-600 transition-colors truncate">${esc(r.targetTitle || '—')}</span>
+            ${statusHtml}
+          </a>
+          <button onclick="deleteRelation('${r.id}')"
+                  class="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 ml-1 p-1">
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  function toggleAddRelation() {
+    const form = document.getElementById('add-relation-form');
+    const hidden = form.classList.toggle('hidden');
+    if (!hidden) {
+      document.getElementById('relation-search-input').focus();
+      document.getElementById('relation-target-id').value = '';
+    } else {
+      document.getElementById('relation-suggestions').classList.add('hidden');
+      document.getElementById('relation-search-input').value = '';
+    }
+  }
+
+  let relationSearchTimeout = null;
+  async function searchRelationTickets(q) {
+    clearTimeout(relationSearchTimeout);
+    const suggestions = document.getElementById('relation-suggestions');
+    if (!q || q.length < 2) { suggestions.classList.add('hidden'); return; }
+    relationSearchTimeout = setTimeout(async () => {
+      const resp = await apiFetch('/my/tickets/?search=' + encodeURIComponent(q) + '&limit=8&include_closed=true');
+      if (!resp || !resp.ok) return;
+      const data = await resp.json();
+      const tickets = (data.data || []).filter(t => t.id !== TICKET_ID);
+      if (!tickets.length) { suggestions.classList.add('hidden'); return; }
+      suggestions.innerHTML = tickets.map(t => `
+        <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0"
+             onclick="selectRelationTicket('${t.id}', ${JSON.stringify(esc(t.title))})">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">${t.id.substring(0, 8)}</span>
+            ${statusBadge(t.status)}
+            <span class="text-xs text-gray-700 truncate">${esc(t.title)}</span>
+          </div>
+        </div>`).join('');
+      suggestions.classList.remove('hidden');
+    }, 280);
+  }
+
+  function selectRelationTicket(id, title) {
+    document.getElementById('relation-target-id').value = id;
+    document.getElementById('relation-search-input').value = title;
+    document.getElementById('relation-suggestions').classList.add('hidden');
+  }
+
+  async function saveRelation() {
+    const targetId = document.getElementById('relation-target-id').value.trim();
+    const relationType = document.getElementById('relation-type').value;
+    if (!targetId) { showToast('Buscá y seleccioná un ticket primero.', 'warning'); return; }
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/', {
+      method: 'POST',
+      body: JSON.stringify({ targetTicketId: targetId, relationType }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.status === 201) {
+      showToast('Relación agregada.', 'success');
+      toggleAddRelation();
+      loadTicket();
+    } else {
+      const err = resp ? await resp.json().catch(() => ({})) : {};
+      showToast(err.message || 'Error al agregar la relación.', 'error');
+    }
+  }
+
+  async function deleteRelation(relationId) {
+    if (!confirm('¿Eliminar esta relación?')) return;
+    const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/' + relationId, { method: 'DELETE' });
+    if (resp && resp.status === 204) {
+      showToast('Relación eliminada.', 'success');
+      loadTicket();
+    } else {
+      showToast('Error al eliminar la relación.', 'error');
+    }
+  }
+
+  // ─ Reasignación ─
+  let _reassignTimer = null;
+
+  function _showReassignChip(username) {
+    const chip   = document.getElementById('reassign-chip');
+    const wrap   = document.getElementById('reassign-input-wrap');
+    const avatar = document.getElementById('reassign-chip-avatar');
+    const name   = document.getElementById('reassign-chip-name');
+    if (!chip || !wrap) return;
+    if (avatar) avatar.textContent = username.slice(0, 2).toUpperCase();
+    if (name)   name.textContent   = username;
+    chip.classList.remove('hidden'); chip.classList.add('flex');
+    wrap.classList.add('hidden');
+    document.getElementById('reassign-id').value = username;
+  }
+
+  function clearReassign() {
+    const chip = document.getElementById('reassign-chip');
+    const wrap = document.getElementById('reassign-input-wrap');
+    const input = document.getElementById('reassign-input');
+    if (chip) { chip.classList.add('hidden'); chip.classList.remove('flex'); }
+    if (wrap)  wrap.classList.remove('hidden');
+    if (input) { input.value = ''; input.focus(); }
+    document.getElementById('reassign-id').value = '';
+  }
+
+  function openReassignForm() {
+    document.getElementById('edit-triggers').classList.add('hidden');
+    const form = document.getElementById('reassign-form');
+    form.classList.remove('hidden');
+    form.style.display = 'flex';
+    const existing = ticket?.assignedTo || '';
+    if (existing) {
+      _showReassignChip(existing);
+    } else {
+      const input = document.getElementById('reassign-input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+
+  function cancelReassignForm() {
+    const triggers = document.getElementById('edit-triggers');
+    const form = document.getElementById('reassign-form');
+    if (triggers) triggers.classList.remove('hidden');
+    if (form) { form.classList.add('hidden'); form.style.display = ''; }
+    const suggest = document.getElementById('reassign-suggestions');
+    if (suggest) suggest.classList.add('hidden');
+    // Reset chip state
+    const chip = document.getElementById('reassign-chip');
+    const wrap = document.getElementById('reassign-input-wrap');
+    if (chip) { chip.classList.add('hidden'); chip.classList.remove('flex'); }
+    if (wrap) wrap.classList.remove('hidden');
+  }
+
+  function openPriorityForm() {
+    document.getElementById('edit-triggers').classList.add('hidden');
+    const form = document.getElementById('priority-form');
+    form.classList.remove('hidden');
+    form.style.display = 'flex';
+    form.querySelector('select').focus();
+  }
+
+  function cancelPriorityForm() {
+    const triggers = document.getElementById('edit-triggers');
+    const form = document.getElementById('priority-form');
+    if (triggers) triggers.classList.remove('hidden');
+    if (form) { form.classList.add('hidden'); form.style.display = ''; }
+  }
+
+  async function savePriority() {
+    const newPriority = document.getElementById('priority-select').value;
+    if (!newPriority) { showToast('Seleccioná una prioridad.', 'warning'); return; }
+    const resp = await apiFetch('/tickets/' + TICKET_ID, {
+      method: 'PATCH',
+      body: JSON.stringify({ priority: parseInt(newPriority) }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.ok) {
+      showToast('Prioridad actualizada.', 'success');
+      cancelPriorityForm();
+      loadTicket();
+    } else {
+      const err = resp ? await resp.json().catch(() => ({})) : {};
+      showToast(err.message || 'Error al actualizar la prioridad.', 'error');
+    }
+  }
+
+  function selectReassign(username) {
+    document.getElementById('reassign-suggestions').classList.add('hidden');
+    _showReassignChip(username);
+  }
+
+  document.getElementById('reassign-input').addEventListener('input', function () {
+    clearTimeout(_reassignTimer);
+    document.getElementById('reassign-id').value = '';
+    const q = this.value.trim();
+    if (q.length < 1) { document.getElementById('reassign-suggestions').classList.add('hidden'); return; }
+    _reassignTimer = setTimeout(() => searchReassign(q), 250);
+  });
+
+  async function searchReassign(q) {
+    const all = await window.loadUsersCache(API_BASE);
+    const users = window.filterUsers(all, q);
+    const suggest = document.getElementById('reassign-suggestions');
+    if (!users || !users.length) { suggest.classList.add('hidden'); return; }
+    const header = `<div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 select-none">Responsable</div>`;
+    suggest.innerHTML = header + users.map(u => `
+      <div class="suggest-item px-3 py-2.5 flex items-center gap-2.5 cursor-pointer hover:bg-blue-100 transition-colors rounded-md"
+           data-username="${esc(u.userName)}">
+        <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
+          ${esc((u.userName || '').slice(0, 2).toUpperCase())}
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-gray-800 truncate">@${esc(u.userName)}</div>
+          ${u.mail ? `<div class="text-xs text-gray-400 truncate">${esc(u.mail)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+    suggest.classList.remove('hidden');
+    suggest.querySelectorAll('[data-username]').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectReassign(el.dataset.username);
+      });
+    });
+  }
+
+  async function saveReassign() {
+    const newAssignee = document.getElementById('reassign-id').value.trim();
+    if (!newAssignee) {
+      showToast('Seleccioná un responsable de la lista.', 'warning');
+      return;
+    }
+    const resp = await apiFetch('/tickets/' + TICKET_ID, {
+      method: 'PATCH',
+      body: JSON.stringify({ assignedTo: newAssignee }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.ok) {
+      showToast('Responsable actualizado.', 'success');
+      cancelReassignForm();
+      loadTicket();
+    } else {
+      const err = resp ? await resp.json().catch(() => ({})) : {};
+      showToast(err.message || 'Error al reasignar.', 'error');
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    const suggest = document.getElementById('reassign-suggestions');
+    const input = document.getElementById('reassign-input');
+    if (suggest && !suggest.contains(e.target) && e.target !== input) {
+      suggest.classList.add('hidden');
+    }
+  });
+
+  function canDeleteAttachment(a) {
+    const user = getUser();
+    if (!user) return false;
+    const isOwner = a.uploadedBy === user.userName;
+    const ageMs = Date.now() - new Date(a.createdAt).getTime();
+    const ageHours = ageMs / 3600000;
+    return isOwner && ageHours <= 24;
+  }
+
+  function renderAttachmentWithDelete(a) {
+    const deleteBtn = canDeleteAttachment(a)
+      ? `<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})"
+           class="btn btn-ghost p-1 text-xs" style="color:#ef4444;" title="Eliminar adjunto">
+           <i class="fas fa-trash text-xs"></i>
+         </button>`
+      : '';
+    return `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}${deleteBtn}</div>`;
+  }
+
+  async function deleteAttachment(ticketId, attachmentId, filename) {
+    if (!confirm(`¿Eliminar adjunto "${filename}"?`)) return;
+    const resp = await apiFetch(`/tickets/${ticketId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+    });
+    if (resp && resp.status === 204) {
+      showToast('Adjunto eliminado', 'success');
+      loadTicket();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al eliminar adjunto', 'error');
+    }
+  }
+
+  loadTicket();
+</script>
+{% endblock %}

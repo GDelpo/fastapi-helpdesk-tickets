@@ -1,0 +1,63 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.Python
+venv/
+env/
+.venv/
+*.egg
+
+# Node / Tailwind build (no aplica — Tailwind v4 browser build)
+node_modules/
+app/dashboard/static_src/
+
+# Temp / Tests
+*.tmp
+.coverage
+.pytest_cache
+htmlcov/
+
+# Logs
+*.log
+
+# Docker (evitar recursion)
+docker/
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Environment
+.env
+*.sqlite3
+
+# Documentation / Prototypes
+docs/
+README.md
+CHANGELOG.md
+.agent.md
+AGENTS.md
+.superpowers/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Misc
+*.bak
+Thumbs.db

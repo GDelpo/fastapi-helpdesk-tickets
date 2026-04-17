@@ -1,0 +1,58 @@
+<!--[if mso]><table width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;">
+
+    <!-- Header azul -->
+    <tr>
+      <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;padding:28px 32px 24px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#bfdbfe;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">NOBLE SEGUROS</div>
+        <div style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.2;">Mesa de Ayuda</div>
+        <div style="margin-top:10px;display:inline-block;background-color:#ffffff;border-radius:6px;padding:4px 14px;">
+          <span style="font-size:12px;font-weight:700;color:#1d4ed8;">&#9203; Necesitamos tu respuesta</span>
+        </div>
+      </td>
+    </tr>
+
+    <!-- Cuerpo -->
+    <tr>
+      <td style="padding:28px 32px 16px;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#111827;">Hola, {{ submitter_name }}</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+          Tu ticket <code style="font-family:monospace;background:#f1f5f9;padding:1px 6px;border-radius:3px;">{{ ticket_id }}</code>
+          &mdash; <strong>{{ ticket_title }}</strong> &mdash; est&aacute; esperando tu respuesta.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Mensaje del soporte -->
+    <tr>
+      <td style="padding:0 32px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:4px solid #3b82f6;background-color:#eff6ff;border-radius:0 8px 8px 0;border-collapse:collapse;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px;">{{ staff_name }}</div>
+              <p style="margin:0;font-size:14px;color:#1e293b;line-height:1.7;">{{ reply_content }}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- CTA -->
+    <tr>
+      <td style="padding:4px 32px 28px;">
+        <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="#1d4ed8" style="background-color:#1d4ed8;border-radius:8px;padding:0;">
+              <a href="{{ portal_url }}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+                Responder ahora &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+{% include "email/_footer.html" %}
+
+</table>
+<!--[if mso]></td></tr></table><![endif]-->

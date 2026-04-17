@@ -1,0 +1,280 @@
+{% extends "portal/base.html" %}
+
+{% block body %}
+  {% include "portal/_navbar.html" %}
+
+  <main class="flex-grow w-full page-enter">
+    {% block page_content %}{% endblock %}
+  </main>
+
+  <footer class="bg-white border-t border-gray-200 w-full">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-gray-500">
+      <a href="{{ company_website }}" target="_blank" rel="noopener noreferrer"
+         class="no-underline text-gray-500 hover:text-gray-700 transition-colors">
+        <strong>© {{ current_year }} {{ company_name }}</strong> | {{ company_legal_tagline }}
+      </a>
+    </div>
+  </footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const BASE      = "{{ base }}";
+  const API_BASE  = BASE + '/api/v1';
+  const TOKEN_KEY = 'tk_token';
+  const USER_KEY  = 'tk_user';
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }
+  function getUser() { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
+  function goLogin() { clearToken(); window.location.href = BASE + '/portal/login'; }
+  function logout()  { goLogin(); }
+
+  async function apiFetch(path, opts = {}) {
+    const token = getToken();
+    if (!token) { goLogin(); return null; }
+    const resp = await fetch(API_BASE + path, {
+      ...opts,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json',
+        ...(opts.headers || {}),
+      },
+    });
+    if (resp.status === 401 || resp.status === 403) { goLogin(); return null; }
+    return resp;
+  }
+
+  // ─ Lucide-name → FA-class mapping (for queue icons stored in DB) ─
+  const LUCIDE_TO_FA = {
+    'laptop':'fa-laptop','computer':'fa-desktop','monitor':'fa-desktop','desktop':'fa-desktop',
+    'users':'fa-users','user':'fa-user','user-check':'fa-user-check','person':'fa-user',
+    'calculator':'fa-calculator','dollar-sign':'fa-dollar-sign','dollar':'fa-dollar-sign',
+    'file-pen-line':'fa-file-alt','file-text':'fa-file-alt','file':'fa-file','file-alt':'fa-file-alt',
+    'search':'fa-search','handshake':'fa-handshake','globe':'fa-globe',
+    'heart':'fa-heart','layers':'fa-layer-group','tag':'fa-tag',
+    'settings':'fa-cog','cog':'fa-cog','tool':'fa-wrench','wrench':'fa-wrench',
+    'shield':'fa-shield-alt','lock':'fa-lock','key':'fa-key',
+    'mail':'fa-envelope','message-square':'fa-comment','message-circle':'fa-comment','message':'fa-comment',
+    'phone':'fa-phone','headphones':'fa-headphones',
+    'briefcase':'fa-briefcase','building':'fa-building','office-building':'fa-building',
+    'chart-bar':'fa-chart-bar','trending-up':'fa-chart-line','bar-chart':'fa-chart-bar',
+    'truck':'fa-truck','package':'fa-box',
+    'printer':'fa-print','wifi':'fa-wifi',
+    'database':'fa-database','server':'fa-server',
+    'code':'fa-code','terminal':'fa-terminal','code-2':'fa-code',
+    'folder':'fa-folder','folder-open':'fa-folder-open',
+    'home':'fa-home','house':'fa-home',
+    'clipboard':'fa-clipboard','clipboard-list':'fa-clipboard-list',
+    'help-circle':'fa-question-circle','info':'fa-info-circle','circle-help':'fa-question-circle',
+    'alert-circle':'fa-exclamation-circle','alert-triangle':'fa-exclamation-triangle',
+    'ticket':'fa-ticket-alt','ticket-check':'fa-ticket-alt',
+    'zap':'fa-bolt','lightning':'fa-bolt',
+    'smile':'fa-smile','star':'fa-star',
+    'list':'fa-list','list-check':'fa-list-check','check-list':'fa-tasks',
+    'edit':'fa-edit','pencil':'fa-pencil-alt','pen':'fa-pen',
+    'check':'fa-check','check-circle':'fa-check-circle','check-check':'fa-check-double',
+    'plus':'fa-plus','plus-circle':'fa-plus-circle',
+    'archive':'fa-archive','inbox':'fa-inbox',
+    'send':'fa-paper-plane','arrow-right':'fa-arrow-right','arrow-left':'fa-arrow-left',
+    'chat':'fa-comments','support':'fa-headset','headset':'fa-headset',
+  };
+  window.toFaIcon = function(name) {
+    if (!name) return 'fa-circle';
+    if (name.startsWith('fa-')) return name;
+    return LUCIDE_TO_FA[name] || 'fa-tag';
+  };
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'ahora';
+    if (m < 60) return `hace ${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `hace ${h}h`;
+    const d = Math.floor(h / 24);
+    if (d === 1) return 'ayer';
+    if (d < 7) return `hace ${d}d`;
+    return new Date(iso).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+  }
+
+  function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+
+  // ─ SSN-style staggered fade-in ─
+  function applyStaggerFade(targets, delay = 180) {
+    let nodes = [];
+    if (typeof targets === 'string') {
+      nodes = Array.from(document.querySelectorAll(targets));
+    } else if (targets instanceof NodeList || Array.isArray(targets)) {
+      nodes = Array.from(targets);
+    }
+    nodes.forEach((node, index) => {
+      node.classList.remove('animate-fadeIn');
+      setTimeout(() => node.classList.add('animate-fadeIn'), index * delay);
+    });
+  }
+  window.applyStaggerFade = applyStaggerFade;
+
+  // ─ Bell dropdown ─
+  let bellLoaded = false;
+
+  function toggleBell() {
+    const dd = document.getElementById('bell-dropdown');
+    const isHidden = dd.classList.toggle('hidden');
+    if (!isHidden && !bellLoaded) { bellLoaded = true; loadNotifications(); }
+    if (!isHidden) {
+      setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+          if (!document.getElementById('bell-wrapper').contains(e.target)) {
+            dd.classList.add('hidden');
+            document.removeEventListener('click', handler);
+          }
+        });
+      }, 50);
+    }
+  }
+
+  function closeBell() { document.getElementById('bell-dropdown').classList.add('hidden'); }
+
+  async function loadNotifications() {
+    const resp = await apiFetch('/my/notifications/?limit=10&offset=0');
+    if (!resp || !resp.ok) return;
+    const data = await resp.json();
+    const list = document.getElementById('notif-list');
+    if (!data.data || !data.data.length) {
+      list.innerHTML = '<div class="px-4 py-4 text-center text-xs text-gray-400">Sin notificaciones nuevas</div>';
+      return;
+    }
+    const typeIcon = {
+      reply: 'fa-comment',
+      status_change: 'fa-sync-alt',
+      mention: 'fa-at',
+      new_ticket: 'fa-ticket-alt',
+      pending_waiting: 'fa-clock',
+    };
+    const typeLabel = {
+      reply: 'Respuesta',
+      status_change: 'Cambio de estado',
+      mention: 'Mención',
+      new_ticket: 'Nuevo ticket',
+      pending_waiting: 'Pendiente',
+    };
+    const typeClass = {
+      reply: 'bg-blue-100 text-blue-700',
+      status_change: 'bg-indigo-100 text-indigo-700',
+      mention: 'bg-purple-100 text-purple-700',
+      new_ticket: 'bg-slate-100 text-slate-700',
+      pending_waiting: 'bg-orange-100 text-orange-700',
+    };
+    list.innerHTML = data.data.map(n => `
+      <div class="flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${n.isRead?'opacity-60':'notif-unread-item hover:bg-blue-50'}"
+           onclick="handleNotifClick('${n.id}', '${n.ticketId}', this)">
+        <div class="notif-dot ${n.isRead?'bg-gray-300':'bg-blue-500'}"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 mb-1">
+            <i class="fa-solid ${typeIcon[n.type] || 'fa-bell'} text-xs ${n.isRead ? 'text-gray-300' : 'text-blue-500'}"></i>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${typeClass[n.type] || 'bg-gray-100 text-gray-600'}">${typeLabel[n.type] || n.type}</span>
+          </div>
+          <div class="text-xs font-medium text-gray-800 leading-snug">${esc(n.content)}</div>
+          <div class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-clock mr-1"></i>${timeAgo(n.createdAt)}</div>
+        </div>
+      </div>`).join('');
+    const unread = data.data.filter(n => !n.isRead).length;
+    updateBellBadge(unread);
+  }
+
+  async function handleNotifClick(id, ticketId, el) {
+    await markNotifRead(id, el);
+    closeBell();
+    if (ticketId) {
+      window.location.href = `${BASE}/portal/tickets/${ticketId}`;
+    }
+  }
+
+  async function markNotifRead(id, el) {
+    el.classList.remove('notif-unread-item');
+    el.querySelector('.notif-dot').className = 'notif-dot bg-gray-300';
+    el.classList.add('opacity-60');
+    await apiFetch('/my/notifications/' + id, { method: 'PATCH' });
+    loadUnreadCount();
+  }
+
+  async function markAllRead() {
+    await apiFetch('/my/notifications/read-all', { method: 'POST' });
+    bellLoaded = false;
+    await loadNotifications();
+    updateBellBadge(0);
+    closeBell();
+    showToast('Todas las notificaciones marcadas como leídas.', 'success', 3000);
+  }
+
+  function updateBellBadge(count) {
+    ['bell-badge', 'bell-badge-mobile'].forEach(id => {
+      const badge = document.getElementById(id);
+      if (!badge) return;
+      if (count > 0) {
+        badge.textContent = count > 9 ? '9+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    });
+  }
+
+  async function loadUnreadCount() {
+    const resp = await apiFetch('/my/notifications/?limit=1&offset=0');
+    if (!resp || !resp.ok) return;
+    const data = await resp.json();
+    updateBellBadge(data.unreadCount || 0);
+  }
+
+  // ─ User menu ─
+  function toggleUserMenu() {
+    const dd = document.getElementById('user-dropdown');
+    dd.classList.toggle('hidden');
+    if (!dd.classList.contains('hidden')) {
+      setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+          if (!document.getElementById('user-menu-wrapper').contains(e.target)) {
+            dd.classList.add('hidden');
+            document.removeEventListener('click', handler);
+          }
+        });
+      }, 50);
+    }
+  }
+
+  // ─ Mobile menu toggle ─
+  document.getElementById('mobile-menu-button')?.addEventListener('click', function() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('hidden');
+  });
+
+  // ─ Init ─
+  (function initPortal() {
+    if (!getToken()) { goLogin(); return; }
+    const user = getUser();
+    if (user) {
+      const name = user.userName || '';
+      document.getElementById('user-display').textContent = name;
+      document.getElementById('user-avatar').textContent = name.slice(0, 2).toUpperCase() || '?';
+      document.getElementById('user-fullname').textContent = user.userName || '—';
+      document.getElementById('user-username').textContent = user.mail || '';
+    }
+    loadUnreadCount();
+    applyStaggerFade('[data-animate-fade]', 140);
+  })();
+</script>
+{% endblock %}

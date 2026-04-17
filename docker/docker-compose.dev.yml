@@ -1,0 +1,66 @@
+# ============================================================================
+# Tickets Service - Docker Compose (Development)
+# ============================================================================
+#
+# USAGE:
+#   cd tickets
+#   docker compose --env-file .env -f docker/docker-compose.dev.yml up -d --build
+# ============================================================================
+
+name: tickets-dev
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tickets_postgres_dev
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tickets_dev}
+      POSTGRES_USER: ${DB_USER:-tickets_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tickets_user} -d ${DB_NAME:-tickets_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Tickets API (dev — hot reload via bind mount)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      # admin.css y portal.css se compilan en el Dockerfile (stage frontend-builder)
+    container_name: tickets_api_dev
+    env_file:
+      - ../.env
+    environment:
+      # Dev overrides
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DEBUG: "true"
+      LOG_FORMAT: "text"
+      LOG_LEVEL: "DEBUG"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../app:/app/app
+      - ../alembic:/app/alembic
+      - ../alembic.ini:/app/alembic.ini
+      - attachments_dev_data:/data/attachments
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  attachments_dev_data:
+    driver: local

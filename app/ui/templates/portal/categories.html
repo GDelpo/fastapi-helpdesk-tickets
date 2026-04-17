@@ -1,0 +1,310 @@
+{% extends "portal/shell.html" %}
+{% block title %}Categorías — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-6 py-8">
+  <!-- Header -->
+  <div>
+    <h1 class="font-bold text-gray-800 text-2xl">Áreas y categorías</h1>
+    <p class="text-sm text-gray-500 mt-1">Seleccioná el área correspondiente a tu consulta para abrir un ticket directamente.</p>
+  </div>
+
+  <!-- Grid -->
+  <div id="categories-grid" class="space-y-4">
+    <!-- skeleton cards -->
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="skeleton w-11 h-11 rounded-lg"></div>
+        <div class="flex-1 space-y-2">
+          <div class="skeleton h-4 w-32"></div>
+          <div class="skeleton h-3 w-full"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="skeleton h-3 w-20"></div>
+        <div class="skeleton h-7 w-28 rounded-full"></div>
+      </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="skeleton w-11 h-11 rounded-lg"></div>
+        <div class="flex-1 space-y-2">
+          <div class="skeleton h-4 w-24"></div>
+          <div class="skeleton h-3 w-full"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="skeleton h-3 w-20"></div>
+        <div class="skeleton h-7 w-28 rounded-full"></div>
+      </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="skeleton w-11 h-11 rounded-lg"></div>
+        <div class="flex-1 space-y-2">
+          <div class="skeleton h-4 w-28"></div>
+          <div class="skeleton h-3 w-full"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="skeleton h-3 w-20"></div>
+        <div class="skeleton h-7 w-28 rounded-full"></div>
+      </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="skeleton w-11 h-11 rounded-lg"></div>
+        <div class="flex-1 space-y-2">
+          <div class="skeleton h-4 w-20"></div>
+          <div class="skeleton h-3 w-full"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="skeleton h-3 w-20"></div>
+        <div class="skeleton h-7 w-28 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const VIEW_STORAGE_KEY = 'portal_categories_view';
+  let categoriesView = localStorage.getItem(VIEW_STORAGE_KEY) || 'grouped';
+
+  const FALLBACK_ICONS = [
+    'fa-laptop', 'fa-users', 'fa-calculator', 'fa-file-alt', 'fa-search',
+    'fa-handshake', 'fa-globe', 'fa-heart', 'fa-layer-group', 'fa-tag',
+  ];
+
+  // Gradient color mapping
+  const COLOR_MAP = {
+    blue:   { gradient: 'from-blue-600 to-blue-400',     hover: 'blue-300',   btnBg: 'bg-blue-50',   btnText: 'text-blue-700',   btnBorder: 'border-blue-200',   btnHoverBg: 'bg-blue-700' },
+    green:  { gradient: 'from-green-600 to-green-400',   hover: 'green-300',  btnBg: 'bg-green-50',  btnText: 'text-green-700',  btnBorder: 'border-green-200',  btnHoverBg: 'bg-green-700' },
+    purple: { gradient: 'from-purple-600 to-purple-400', hover: 'purple-300', btnBg: 'bg-purple-50', btnText: 'text-purple-700', btnBorder: 'border-purple-200', btnHoverBg: 'bg-purple-700' },
+    orange: { gradient: 'from-orange-500 to-orange-400', hover: 'orange-300', btnBg: 'bg-orange-50', btnText: 'text-orange-700', btnBorder: 'border-orange-200', btnHoverBg: 'bg-orange-700' },
+    indigo: { gradient: 'from-indigo-600 to-indigo-400', hover: 'indigo-300', btnBg: 'bg-indigo-50', btnText: 'text-indigo-700', btnBorder: 'border-indigo-200', btnHoverBg: 'bg-indigo-700' },
+    teal:   { gradient: 'from-teal-600 to-teal-400',     hover: 'teal-300',   btnBg: 'bg-teal-50',   btnText: 'text-teal-700',   btnBorder: 'border-teal-200',   btnHoverBg: 'bg-teal-700' },
+    gray:   { gradient: 'from-gray-500 to-gray-400',     hover: 'gray-300',   btnBg: 'bg-gray-50',   btnText: 'text-gray-700',   btnBorder: 'border-gray-200',   btnHoverBg: 'bg-gray-600' },
+    slate:  { gradient: 'from-slate-500 to-slate-400',   hover: 'slate-300',  btnBg: 'bg-slate-50',  btnText: 'text-slate-700',  btnBorder: 'border-slate-200',  btnHoverBg: 'bg-slate-600' },
+  };
+  const COLOR_CYCLE = ['blue', 'purple', 'green', 'orange', 'teal', 'indigo'];
+
+  function resolveColor(raw, idx) {
+    if (raw && COLOR_MAP[raw]) return COLOR_MAP[raw];
+    return COLOR_MAP[COLOR_CYCLE[idx % COLOR_CYCLE.length]];
+  }
+
+  function iconForQueue(queue, idx) {
+    const raw = (queue.icon && String(queue.icon).trim()) || '';
+    const fa = raw ? window.toFaIcon(raw) : FALLBACK_ICONS[idx % FALLBACK_ICONS.length];
+    return fa;
+  }
+
+  function sortByOrderAndName(a, b) {
+    return ((a.sortOrder ?? 0) - (b.sortOrder ?? 0)) || a.name.localeCompare(b.name);
+  }
+
+  function groupQueues(queues) {
+    const byId = new Map(queues.map(q => [q.id, q]));
+    const roots = queues.filter(q => !q.parentId).sort(sortByOrderAndName);
+
+    const groups = roots.map(root => {
+      const children = queues
+        .filter(q => q.parentId === root.id)
+        .sort(sortByOrderAndName);
+      return { root, children };
+    });
+
+    const orphans = queues
+      .filter(q => q.parentId && !byId.has(q.parentId))
+      .sort(sortByOrderAndName);
+
+    if (orphans.length) {
+      groups.push({ root: null, children: orphans, orphan: true });
+    }
+
+    return groups;
+  }
+
+  function renderQueueCard(q, idx, countMap, { compact = false, parentName = '' } = {}) {
+    const c = resolveColor(q.color, idx);
+    const icon = iconForQueue(q, idx);
+    const openCount = countMap[q.id] || 0;
+    const isOtros = (q.name || '').toLowerCase() === 'otros';
+
+    const parentHint = parentName
+      ? `<div class="text-[11px] text-gray-400 mt-0.5">Subcategoría de ${esc(parentName)}</div>`
+      : '';
+
+    const countLabel = openCount > 0
+      ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${c.btnBg} ${c.btnText}">
+          <i class="fas fa-ticket-alt" style="font-size:10px;"></i>
+          ${openCount} abierto${openCount !== 1 ? 's' : ''}
+        </span>`
+      : `<span class="inline-flex items-center gap-1 text-xs text-gray-400">
+          <i class="fas fa-ticket-alt" style="font-size:10px;color:#d1d5db;"></i>
+          sin tickets abiertos
+        </span>`;
+
+    const borderExtra = isOtros ? 'border-dashed' : '';
+
+    return `
+      <div class="bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-200 border border-gray-200 hover:border-${c.hover} hover:shadow-md group ${borderExtra} ${compact ? 'p-3.5' : 'p-4'}"
+           onclick="openInCategory(${q.id})">
+
+        <div class="flex items-start gap-3.5 ${compact ? 'mb-3' : 'mb-4'}">
+          <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm">
+            <i class="fas ${icon} text-white" style="font-size:14px;"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-bold text-gray-800 leading-snug group-hover:${c.btnText} transition-colors">${esc(q.name)}</h3>
+            <p class="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">${esc(q.description || '')}</p>
+            ${parentHint}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          ${countLabel}
+          <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${c.btnBg} ${c.btnText} border ${c.btnBorder} hover:${c.btnHoverBg} hover:text-white"
+                  onclick="event.stopPropagation();openNewTicket(${q.id})">
+            <i class="fas fa-plus" style="font-size:10px;"></i>
+            Abrir ticket
+          </button>
+        </div>
+      </div>`;
+  }
+
+  async function loadCategories() {
+    const resp = await apiFetch('/queues/');
+    if (!resp || !resp.ok) {
+      document.getElementById('categories-grid').innerHTML =
+        '<p class="text-sm text-gray-400 text-center py-8">No se pudieron cargar las categorías.</p>';
+      return;
+    }
+    const queues = await resp.json();
+
+    // Load my active ticket counts per queue
+    const countMap = {};
+    try {
+      const r2 = await apiFetch('/my/tickets/?limit=200&include_closed=false');
+      if (r2 && r2.ok) {
+        const d2 = await r2.json();
+        (d2.data || []).forEach(t => {
+          if (!['closed','resolved'].includes(t.status)) {
+            countMap[t.queueId] = (countMap[t.queueId] || 0) + 1;
+          }
+        });
+      }
+    } catch {}
+
+    const grid = document.getElementById('categories-grid');
+    const activeQueues = queues.filter(q => q.isActive);
+    const groups = groupQueues(activeQueues);
+
+    if (!groups.length) {
+      grid.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Sin categorías disponibles.</p>';
+      return;
+    }
+
+    let colorIdx = 0;
+
+    if (categoriesView === 'flat') {
+      const flatItems = [];
+      groups.forEach(group => {
+        if (!group.root) {
+          group.children.forEach(child => flatItems.push({ queue: child, parentName: '' }));
+          return;
+        }
+        flatItems.push({ queue: group.root, parentName: '' });
+        group.children.forEach(child => flatItems.push({ queue: child, parentName: group.root.name }));
+      });
+
+      grid.innerHTML = `
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-3" data-animate-fade>
+          ${flatItems.map(item => renderQueueCard(item.queue, colorIdx++, countMap, { compact: false, parentName: item.parentName })).join('')}
+        </section>`;
+      applyStaggerFade('[data-animate-fade]', 150);
+      updateViewToggle();
+      return;
+    }
+
+    grid.innerHTML = groups.map(group => {
+      if (!group.root) {
+        const orphanCards = group.children.map(child => renderQueueCard(child, colorIdx++, countMap, { compact: true })).join('');
+        return `
+          <section class="bg-white border border-gray-200 rounded-lg shadow-sm p-4" data-animate-fade>
+            <div class="text-xs font-semibold uppercase tracking-[0.07em] text-gray-500 mb-3">Sin categoría padre</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${orphanCards}</div>
+          </section>`;
+      }
+
+      if (!group.children.length) {
+        return renderQueueCard(group.root, colorIdx++, countMap, { compact: false });
+      }
+
+      const sectionOpenCount = (countMap[group.root.id] || 0) + group.children.reduce((acc, c) => acc + (countMap[c.id] || 0), 0);
+      const childrenCards = group.children
+        .map(child => renderQueueCard(child, colorIdx++, countMap, { compact: true, parentName: group.root.name }))
+        .join('');
+
+      const gc = resolveColor(group.root.color, colorIdx);
+
+      return `
+        <section class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden" data-animate-fade>
+          <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-transparent flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br ${gc.gradient} flex items-center justify-center shadow-sm">
+                <i class="fas ${iconForQueue(group.root, colorIdx)} text-white" style="font-size:12px;"></i>
+              </div>
+              <div class="min-w-0">
+                <h2 class="text-sm font-bold text-gray-800 truncate">${esc(group.root.name)}</h2>
+                <p class="text-xs text-gray-500 mt-0.5 truncate">${esc(group.root.description || 'Categoría principal')}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-xs font-medium text-gray-500">${sectionOpenCount} activo${sectionOpenCount !== 1 ? 's' : ''}</span>
+              <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${gc.btnBg} ${gc.btnText} border ${gc.btnBorder} hover:${gc.btnHoverBg} hover:text-white"
+                      onclick="openInCategory(${group.root.id})">
+                <i class="fas fa-list" style="font-size:10px;"></i>
+                Ver todos
+              </button>
+            </div>
+          </div>
+          <div class="p-3.5 grid grid-cols-1 md:grid-cols-2 gap-3">${childrenCards}</div>
+        </section>`;
+    }).join('');
+
+    applyStaggerFade('[data-animate-fade]', 150);
+    updateViewToggle();
+  }
+
+  function updateViewToggle() {
+    const groupedBtn = document.getElementById('view-grouped-btn');
+    const flatBtn = document.getElementById('view-flat-btn');
+    if (!groupedBtn || !flatBtn) return;
+    const isGrouped = categoriesView === 'grouped';
+
+    groupedBtn.className = `px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${isGrouped ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`;
+    flatBtn.className = `px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${!isGrouped ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`;
+  }
+
+  function setCategoriesView(view) {
+    if (view !== 'grouped' && view !== 'flat') return;
+    categoriesView = view;
+    localStorage.setItem(VIEW_STORAGE_KEY, view);
+    loadCategories();
+  }
+
+  function openInCategory(queueId) {
+    window.location.href = BASE + '/portal/categories/' + queueId + '/';
+  }
+
+  function openNewTicket(queueId) {
+    window.location.href = BASE + '/portal/new?queue_id=' + queueId;
+  }
+
+  loadCategories();
+</script>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "admin/base.html" %}
+{% block title %}Categorías — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-bold">Categorías</h2>
+    <button onclick="openQueueModal(null)" class="btn btn-primary" data-admin-only>
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      Nueva Categoría
+    </button>
+  </div>
+
+  <div class="card overflow-hidden" id="queues-tree">
+    <div class="py-10 text-center">
+      <div class="skeleton h-4 w-40 mx-auto mb-2"></div>
+      <div class="skeleton h-4 w-32 mx-auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Crear / Editar Categoría -->
+<div id="modal-queue" class="modal-overlay hidden">
+  <div class="modal max-w-xl w-full">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold" id="modal-queue-title">Nueva Categoría</h3>
+      <button onclick="closeModal('modal-queue')" class="btn btn-ghost p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <form id="form-queue" class="space-y-3 mt-2">
+      <input type="hidden" id="queue-id" value="" />
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Nombre *</label>
+          <input type="text" id="queue-name" class="input" required />
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Slug *</label>
+          <input type="text" id="queue-slug" class="input" required pattern="[a-z0-9-]+" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Categoría padre</label>
+        <select id="queue-parent" class="select w-full">
+          <option value="">— Sin padre (categoría raíz) —</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Descripción</label>
+        <textarea id="queue-desc" class="textarea" rows="2"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Email de notificación</label>
+          <input type="email" id="queue-email" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Agente por defecto</label>
+          <input type="text" id="queue-agent" class="input" placeholder="username" />
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Icono (Lucide)</label>
+          <input type="text" id="queue-icon" class="input" placeholder="inbox" />
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Color</label>
+          <input type="color" id="queue-color" class="input h-10 p-1 cursor-pointer" value="#3b82f6" />
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Orden</label>
+          <input type="number" id="queue-order" class="input" value="0" min="0" />
+        </div>
+      </div>
+      <div id="queue-error" class="hidden text-sm rounded-lg px-3 py-2" style="background: var(--color-error-soft); color: var(--color-error);"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeModal('modal-queue')" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let allQueues = [];
+
+  async function loadQueues() {
+    const resp = await apiFetch('/queues/?active_only=false');
+    if (!resp || !resp.ok) return;
+    allQueues = await resp.json();
+    renderTree(allQueues);
+  }
+
+  function renderTree(queues) {
+    const container = document.getElementById('queues-tree');
+    if (!queues.length) {
+      container.innerHTML = '<div class="py-10 text-center text-sm" style="color: var(--color-text-muted);">Sin categorías</div>';
+      return;
+    }
+
+    const parents = queues.filter(q => !q.parentId);
+    const children = queues.filter(q => q.parentId);
+    const childrenByParent = {};
+    for (const c of children) {
+      if (!childrenByParent[c.parentId]) childrenByParent[c.parentId] = [];
+      childrenByParent[c.parentId].push(c);
+    }
+
+    const standalone = parents.filter(p => !(childrenByParent[p.id] || []).length);
+    const groups = parents.filter(p => (childrenByParent[p.id] || []).length > 0);
+
+    function rowActions(q) {
+      if (!q.isActive) {
+        return `
+          <button onclick="toggleQueue(${q.id}, true)" class="btn btn-ghost text-xs" title="Reactivar">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Reactivar
+          </button>
+          ${(q.ticketCount || 0) === 0 ? `<button onclick="deleteQueue(${q.id})" class="btn btn-danger text-xs" title="Eliminar">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>` : ''}
+        `;
+      }
+      return `
+        <button onclick="openQueueModal(${q.id})" class="btn btn-ghost text-xs" title="Editar">
+          <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="toggleQueue(${q.id}, false)" class="btn btn-ghost text-xs" title="Desactivar">
+          <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+    }
+
+    function queueRow(q, isChild) {
+      const indent = isChild ? 'pl-8' : 'pl-4';
+      const muted = !q.isActive ? 'opacity-50' : '';
+      const icon = q.icon ? `<i data-lucide="${esc(q.icon)}" class="w-4 h-4 shrink-0" style="color:${esc(q.color || '#94a3b8')};"></i>` : '';
+      return `
+        <div class="flex items-center gap-3 px-4 py-3 border-b ${muted}" style="border-color: var(--color-border-subtle);">
+          <div class="${indent} flex items-center gap-2 flex-1 min-w-0">
+            ${isChild ? '<span style="color: var(--color-text-muted);">└</span>' : ''}
+            ${icon}
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate" style="color: var(--color-text-primary);">${esc(q.name)}</div>
+              <div class="text-xs truncate" style="color: var(--color-text-muted);">${esc(q.slug)}</div>
+            </div>
+          </div>
+          <div class="text-xs flex-shrink-0" style="color: var(--color-text-muted);">${q.ticketCount ?? 0} tickets</div>
+          <div class="flex-shrink-0">${q.isActive ? '<span class="badge badge-open text-[10px]">Activa</span>' : '<span class="badge badge-closed text-[10px]">Inactiva</span>'}</div>
+          <div class="flex gap-1 flex-shrink-0" data-admin-only>${rowActions(q)}</div>
+        </div>`;
+    }
+
+    let html = '';
+
+    for (const parent of groups) {
+      const kids = childrenByParent[parent.id] || [];
+      const allCount = kids.reduce((s, c) => s + (c.ticketCount || 0), 0);
+      const muted = !parent.isActive ? 'opacity-50' : '';
+      html += `
+        <div class="px-4 py-2 flex items-center gap-2 ${muted}" style="background: var(--color-surface-2); border-bottom: 1px solid var(--color-border-subtle);">
+          <i data-lucide="folder" class="w-4 h-4" style="color: var(--color-accent);"></i>
+          <span class="text-sm font-semibold" style="color: var(--color-text-primary);">${esc(parent.name)}</span>
+          <span class="text-xs ml-1" style="color: var(--color-text-muted);">${allCount} tickets</span>
+          <div class="ml-auto flex gap-1" data-admin-only>${rowActions(parent)}</div>
+        </div>`;
+      for (const child of kids) {
+        html += queueRow(child, true);
+      }
+    }
+
+    for (const q of standalone) {
+      html += queueRow(q, false);
+    }
+
+    container.innerHTML = html;
+    lucide.createIcons();
+  }
+
+  function openQueueModal(id) {
+    const errEl = document.getElementById('queue-error');
+    errEl.classList.add('hidden');
+    document.getElementById('modal-queue-title').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
+    document.getElementById('queue-id').value = id || '';
+
+    const parentSelect = document.getElementById('queue-parent');
+    parentSelect.innerHTML = '<option value="">— Sin padre (categoría raíz) —</option>';
+    for (const q of allQueues) {
+      if (!q.parentId && q.isActive && q.id !== id) {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = q.name;
+        parentSelect.appendChild(opt);
+      }
+    }
+
+    if (id) {
+      const q = allQueues.find(x => x.id === id);
+      if (q) {
+        document.getElementById('queue-name').value = q.name || '';
+        document.getElementById('queue-slug').value = q.slug || '';
+        document.getElementById('queue-parent').value = q.parentId || '';
+        document.getElementById('queue-desc').value = q.description || '';
+        document.getElementById('queue-email').value = q.email || '';
+        document.getElementById('queue-agent').value = q.assignedToId || '';
+        document.getElementById('queue-icon').value = q.icon || '';
+        document.getElementById('queue-color').value = q.color || '#3b82f6';
+        document.getElementById('queue-order').value = q.sortOrder ?? 0;
+      }
+    } else {
+      document.getElementById('form-queue').reset();
+      document.getElementById('queue-color').value = '#3b82f6';
+    }
+
+    openModal('modal-queue');
+  }
+
+  document.getElementById('queue-name').addEventListener('input', (e) => {
+    const idVal = document.getElementById('queue-id').value;
+    if (!idVal) {
+      document.getElementById('queue-slug').value = e.target.value
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+    }
+  });
+
+  document.getElementById('form-queue').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('queue-error');
+    errEl.classList.add('hidden');
+    const id = document.getElementById('queue-id').value;
+    const parentVal = document.getElementById('queue-parent').value;
+    const body = {
+      name: document.getElementById('queue-name').value.trim(),
+      slug: document.getElementById('queue-slug').value.trim(),
+      parentId: parentVal ? parseInt(parentVal) : null,
+      description: document.getElementById('queue-desc').value.trim() || null,
+      email: document.getElementById('queue-email').value.trim() || null,
+      assignedToId: document.getElementById('queue-agent').value.trim() || null,
+      icon: document.getElementById('queue-icon').value.trim() || null,
+      color: document.getElementById('queue-color').value || null,
+      sortOrder: parseInt(document.getElementById('queue-order').value) || 0,
+    };
+
+    const url = id ? `/queues/${id}` : '/queues/';
+    const method = id ? 'PATCH' : 'POST';
+    const resp = await apiFetch(url, {
+      method,
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (resp && (resp.status === 200 || resp.status === 201)) {
+      closeModal('modal-queue');
+      showToast(id ? 'Categoría actualizada' : 'Categoría creada');
+      loadQueues();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      errEl.textContent = err.message || 'Error al guardar';
+      errEl.classList.remove('hidden');
+    }
+  });
+
+  async function toggleQueue(id, isActive) {
+    const resp = await apiFetch('/queues/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (resp && resp.ok) {
+      showToast(isActive ? 'Categoría reactivada' : 'Categoría desactivada');
+      loadQueues();
+    } else {
+      showToast('Error al actualizar', 'error');
+    }
+  }
+
+  async function deleteQueue(id) {
+    if (!confirm('¿Eliminar esta categoría permanentemente?')) return;
+    const resp = await apiFetch('/queues/' + id, { method: 'DELETE' });
+    if (resp && (resp.status === 200 || resp.status === 204)) {
+      showToast('Categoría eliminada');
+      loadQueues();
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      showToast(err.message || 'Error al eliminar', 'error');
+    }
+  }
+
+  loadQueues();
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+<header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16 items-center">
+
+      <!-- LEFT: Logo + desktop nav links -->
+      <div class="flex items-center">
+        <a href="{{ base }}/portal/" class="flex items-center mr-3 no-underline shrink-0">
+          {% if company_logo_url %}
+          <img src="{{ company_logo_url }}" alt="{{ company_name }}" class="h-12 w-auto mr-3" />
+          {% else %}
+          <i class="fa-solid fa-headset text-blue-700 text-lg mr-2"></i>
+          <span class="font-bold text-gray-800 text-sm hidden sm:inline">{{ portal_navbar_title }}</span>
+          {% endif %}
+        </a>
+
+        <nav class="hidden sm:flex items-center gap-1">
+          {% for item in nav_left %}
+          <a href="{{ item.href }}" class="nav-link{% if item.active %} active{% endif %}">
+            <i class="{{ item.fa_icon }}"></i>
+            {{ item.label }}
+          </a>
+          {% endfor %}
+        </nav>
+      </div>
+
+      <!-- RIGHT: Desktop items (hidden on mobile) -->
+      <div class="hidden sm:flex items-center gap-1">
+
+        <!-- Bell notifications -->
+        <div class="relative" id="bell-wrapper">
+          <button onclick="toggleBell()"
+                  class="relative p-2 text-gray-500 hover:text-blue-600 rounded-md transition-colors focus-visible:outline-none">
+            <i class="fa-solid fa-bell text-sm"></i>
+            <span id="bell-badge"
+                  class="hidden absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">0</span>
+          </button>
+
+          <!-- Bell dropdown -->
+          <div id="bell-dropdown"
+               class="hidden absolute right-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+            <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+              <span class="text-xs font-bold text-gray-700">Notificaciones</span>
+              <button onclick="markAllRead()" class="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                Marcar todas como leídas
+              </button>
+            </div>
+            <div id="notif-list" class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+              <div class="px-4 py-4 text-center text-xs text-gray-400">Cargando…</div>
+            </div>
+            <div class="px-4 py-2 border-t border-gray-100 text-center">
+              <a href="{{ base }}/portal/tickets/" onclick="closeBell()"
+                 class="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors no-underline">
+                Ver todos mis tickets →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="h-5 w-px bg-gray-200 mx-0.5"></div>
+
+        <!-- User dropdown -->
+        <div class="relative" id="user-menu-wrapper">
+          <button onclick="toggleUserMenu()" id="user-menu-btn"
+                  class="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+            <div id="user-avatar"
+                 class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none">?</div>
+            <span id="user-display" class="hidden sm:inline text-sm font-medium text-gray-700">—</span>
+            <i class="fas fa-chevron-down text-gray-400 text-[10px]"></i>
+          </button>
+
+          <div id="user-dropdown"
+               class="hidden absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+            <div class="px-4 py-2 border-b border-gray-100">
+              <div id="user-fullname" class="text-sm font-semibold text-gray-800">—</div>
+              <div id="user-username" class="text-xs text-gray-400 truncate">—</div>
+            </div>
+            <button onclick="logout()"
+                    class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left">
+              <i class="fa-solid fa-sign-out-alt"></i>
+              Salir
+            </button>
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="h-5 w-px bg-gray-200 mx-0.5"></div>
+
+        <!-- Nav right items (Mis Tickets, etc.) -->
+        {% for item in nav_right %}
+        <a href="{{ item.href }}" class="nav-link{% if item.active %} active{% endif %}">
+          <i class="{{ item.fa_icon }}"></i>
+          {{ item.label }}
+        </a>
+        {% endfor %}
+
+        <!-- CTA: Abrir ticket -->
+        <a href="{{ nav_cta.href }}"
+           class="nav-link font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 rounded-md px-3 py-1 ml-1{% if nav_cta.active %} active{% endif %}">
+          <i class="{{ nav_cta.fa_icon }}"></i>
+          {{ nav_cta.label }}
+        </a>
+      </div>
+
+      <!-- MOBILE: Bell badge + Hamburger button -->
+      <div class="flex sm:hidden items-center gap-2">
+        <button onclick="toggleBell()"
+                class="relative p-2 text-gray-500 hover:text-blue-600 rounded-md transition-colors focus-visible:outline-none">
+          <i class="fa-solid fa-bell text-sm"></i>
+          <span id="bell-badge-mobile"
+                class="hidden absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">0</span>
+        </button>
+
+        <button id="mobile-menu-button"
+                class="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors focus-visible:outline-none">
+          <i class="fa-solid fa-bars text-sm"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <nav id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-1">
+    {% for item in nav_left %}
+    <a href="{{ item.href }}"
+       class="block px-3 py-2 text-sm font-medium rounded-md no-underline
+              {% if item.active %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-blue-600{% endif %}">
+      <i class="{{ item.fa_icon }} mr-1.5"></i>
+      {{ item.label }}
+    </a>
+    {% endfor %}
+
+    <a href="{{ nav_cta.href }}"
+       class="block px-3 py-2 text-sm font-medium rounded-md text-blue-700 hover:bg-blue-50 no-underline">
+      <i class="{{ nav_cta.fa_icon }} mr-1.5"></i>
+      {{ nav_cta.label }}
+    </a>
+
+    <div class="border-t border-gray-200 my-2"></div>
+
+    {% for item in nav_right %}
+    <a href="{{ item.href }}"
+       class="block px-3 py-2 text-sm font-medium rounded-md no-underline
+              {% if item.active %}bg-blue-100 text-blue-600{% else %}text-gray-600 hover:bg-gray-100 hover:text-blue-600{% endif %}">
+      <i class="{{ item.fa_icon }} mr-1.5"></i>
+      {{ item.label }}
+    </a>
+    {% endfor %}
+
+    <div class="border-t border-gray-200 my-2"></div>
+
+    <button onclick="logout()"
+            class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-red-600 hover:bg-red-50 text-left">
+      <i class="fa-solid fa-sign-out-alt mr-1.5"></i>
+      Salir
+    </button>
+  </nav>
+</header>

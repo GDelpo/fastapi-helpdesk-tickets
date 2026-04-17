@@ -1,0 +1,284 @@
+{% extends "portal/shell.html" %}
+{% block title %}Categoría — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-4 py-8">
+  <div class="flex items-center gap-2 text-sm text-gray-500">
+    <a href="{{ base }}/portal/categories/" class="inline-flex items-center gap-1 hover:text-blue-600 transition-colors no-underline">
+      <i class="fas fa-arrow-left"></i>Categorías
+    </a>
+    <span class="text-gray-300">/</span>
+    <span class="font-medium text-gray-700">Tickets de categoría</span>
+  </div>
+
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Categoría</div>
+      <h1 id="cat-title" class="font-bold text-gray-800 text-xl leading-tight tracking-tight">Cargando...</h1>
+      <p id="cat-subtitle" class="text-xs text-gray-500 mt-0.5">Cargando tickets...</p>
+    </div>
+    <a id="new-ticket-link" href="{{ base }}/portal/new"
+       class="btn btn-primary gap-1.5 shadow-sm no-underline whitespace-nowrap">
+      <i class="fas fa-plus-circle"></i>Abrir Ticket
+    </a>
+  </div>
+
+  <!-- Filters -->
+  {% include "portal/_filters.html" %}
+
+  <div id="tickets-container" class="space-y-2.5">
+    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <div class="skeleton h-5 w-48 mb-3"></div>
+      <div class="skeleton h-14 rounded-lg mb-2"></div>
+      <div class="skeleton h-14 rounded-lg"></div>
+    </div>
+  </div>
+
+  <div id="empty-state" class="hidden bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
+    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-inbox text-3xl text-gray-300"></i>
+    </div>
+    <p class="text-base text-gray-600 font-semibold">No hay tickets para este filtro</p>
+    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Probá cambiando estado, búsqueda u ordenamiento.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const QUEUE_ID = Number("{{ queue_id }}");
+  const ARCHIVED_STATUSES = ['resolved', 'closed'];
+
+  let allTickets = [];
+  let currentQueue = null;
+
+  async function loadCategory() {
+    const resp = await apiFetch('/queues/' + QUEUE_ID);
+    if (!resp || !resp.ok) {
+      document.getElementById('cat-title').textContent = 'Categoría no disponible';
+      document.getElementById('cat-subtitle').textContent = 'No se pudo cargar la categoría.';
+      return;
+    }
+    currentQueue = await resp.json();
+    document.getElementById('cat-title').textContent = currentQueue.name || 'Categoría';
+    document.getElementById('new-ticket-link').href = `${BASE}/portal/new?queue_id=${QUEUE_ID}`;
+  }
+
+  async function loadTickets() {
+    const resp = await apiFetch(`/my/tickets/?queue_id=${QUEUE_ID}&include_closed=true&limit=200`);
+    if (!resp || !resp.ok) {
+      document.getElementById('tickets-container').innerHTML =
+        '<p class="text-sm text-red-500 text-center py-6">Error al cargar tickets de la categoría.</p>';
+      return;
+    }
+    const data = await resp.json();
+    allTickets = data.data || [];
+    updateSubtitle(allTickets);
+    applyFilters();
+  }
+
+  function updateSubtitle(source) {
+    const activeCount = source.filter(t => !ARCHIVED_STATUSES.includes(t.status)).length;
+    const archivedCount = source.filter(t => ARCHIVED_STATUSES.includes(t.status)).length;
+    document.getElementById('cat-subtitle').textContent =
+      `${source.length} ticket${source.length !== 1 ? 's' : ''} total · ${activeCount} activo${activeCount !== 1 ? 's' : ''} · ${archivedCount} archivado${archivedCount !== 1 ? 's' : ''}`;
+  }
+
+  function updateFilterPill() {
+    const q = document.getElementById('filter-search').value.trim();
+    const status = document.getElementById('filter-status').value;
+    const sortSel = document.getElementById('sort-by');
+    const sortBy = sortSel.value;
+    const defaultSort = sortSel.dataset.defaultSort || 'status';
+    const active = q.length > 0 || status !== '' || sortBy !== defaultSort;
+    document.getElementById('filters-active-pill').classList.toggle('hidden', !active);
+  }
+
+  function clearFilters() {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('sort-by').value = 'status';
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const q = document.getElementById('filter-search').value.toLowerCase().trim();
+    const status = document.getElementById('filter-status').value;
+    const sortBy = document.getElementById('sort-by').value;
+
+    let filtered = allTickets.filter(t => {
+      const matchesSearch = !q ||
+        t.title.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q);
+
+      let matchesStatus = true;
+      if (status === 'active') {
+        matchesStatus = !ARCHIVED_STATUSES.includes(t.status);
+      } else if (status === 'archived') {
+        matchesStatus = ARCHIVED_STATUSES.includes(t.status);
+      } else if (status) {
+        matchesStatus = t.status === status;
+      }
+      return matchesSearch && matchesStatus;
+    });
+
+    filtered = sortTickets(filtered, sortBy);
+    renderTickets(filtered, status);
+    updateFilterPill();
+  }
+
+  function sortTickets(items, sortBy) {
+    const out = [...items];
+    if (sortBy === 'status') {
+      out.sort((a, b) => {
+        const d = statusOrder(a.status) - statusOrder(b.status);
+        if (d !== 0) return d;
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+      });
+      return out;
+    }
+    if (sortBy === 'updated_desc') {
+      out.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return out;
+    }
+    if (sortBy === 'updated_asc') {
+      out.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+      return out;
+    }
+    if (sortBy === 'title_asc') {
+      out.sort((a, b) => a.title.localeCompare(b.title));
+      return out;
+    }
+    if (sortBy === 'title_desc') {
+      out.sort((a, b) => b.title.localeCompare(a.title));
+      return out;
+    }
+    return out;
+  }
+
+  function renderTickets(items, selectedStatus) {
+    const container = document.getElementById('tickets-container');
+    const empty = document.getElementById('empty-state');
+
+    if (!items.length) {
+      container.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+
+    const showSplit = !selectedStatus || selectedStatus === 'active' || selectedStatus === 'archived';
+    const activeItems = showSplit ? items.filter(t => !ARCHIVED_STATUSES.includes(t.status)) : items;
+    const archivedItems = showSplit ? items.filter(t => ARCHIVED_STATUSES.includes(t.status)) : [];
+
+    const activeSection = `
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="section-header">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-ticket-alt text-blue-500"></i>
+            <span class="section-label">Activos</span>
+          </div>
+          <span class="text-xs text-gray-400 font-medium">${activeItems.length}</span>
+        </div>
+        <div class="list-head">
+          <div class="col-span-2">Estado</div>
+          <div class="col-span-2">Ticket</div>
+          <div class="col-span-5">Título</div>
+          <div class="col-span-2">Actualizado</div>
+          <div class="col-span-1 text-right">Resp.</div>
+        </div>
+        <div>
+          ${activeItems.length ? activeItems.map(t => renderTicketRow(t)).join('') : '<div class="px-3 py-4 text-xs text-gray-400 text-center">Sin tickets activos.</div>'}
+        </div>
+      </div>`;
+
+    const archivedSection = archivedItems.length ? `
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="section-header">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-archive text-gray-400"></i>
+            <span class="section-label">Archivados</span>
+          </div>
+          <span class="text-xs text-gray-400 font-medium">${archivedItems.length}</span>
+        </div>
+        <div class="list-head">
+          <div class="col-span-2">Estado</div>
+          <div class="col-span-2">Ticket</div>
+          <div class="col-span-5">Título</div>
+          <div class="col-span-2">Actualizado</div>
+          <div class="col-span-1 text-right">Resp.</div>
+        </div>
+        <div class="bg-gray-50/30">
+          ${archivedItems.map(t => renderTicketRow(t, true)).join('')}
+        </div>
+      </div>` : '';
+
+    if (!showSplit) {
+      container.innerHTML = `
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div class="section-header">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-list text-blue-500"></i>
+              <span class="section-label">Resultados</span>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">${items.length}</span>
+          </div>
+          <div class="list-head">
+            <div class="col-span-2">Estado</div>
+            <div class="col-span-2">Ticket</div>
+            <div class="col-span-5">Título</div>
+            <div class="col-span-2">Actualizado</div>
+            <div class="col-span-1 text-right">Resp.</div>
+          </div>
+          <div>
+            ${items.map(t => renderTicketRow(t, ARCHIVED_STATUSES.includes(t.status))).join('')}
+          </div>
+        </div>`;
+    } else {
+      container.innerHTML = activeSection + archivedSection;
+    }
+  }
+
+  function renderTicketRow(t, archived = false) {
+    const id8 = t.id.substring(0, 8);
+    const opacity = archived ? 'opacity-60' : '';
+    const lineThrough = archived ? 'line-through text-gray-400' : 'text-gray-800';
+
+    return `
+      <a href="${BASE}/portal/tickets/${t.id}"
+         class="ticket-row ${opacity} no-underline ${archived ? 'bg-gray-50/40' : ''}">
+        <div class="md:grid md:grid-cols-12 md:gap-2 md:items-center">
+          <div class="md:col-span-2 flex items-center gap-2 mb-1 md:mb-0">${statusBadge(t.status)}</div>
+          <div class="md:col-span-2 flex items-center gap-2 mb-1 md:mb-0">
+            <span class="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded select-all">${esc(id8)}</span>
+          </div>
+          <div class="md:col-span-5 text-[13px] font-semibold ${lineThrough} leading-snug mb-1 md:mb-0">${esc(t.title)}</div>
+          <div class="md:col-span-2 text-[11px] text-gray-500 mb-1 md:mb-0">${timeAgo(t.updatedAt)}</div>
+          <div class="md:col-span-1 flex items-center justify-between md:justify-end gap-2 text-xs text-gray-500">
+            <span class="inline-flex items-center gap-1">
+              <i class="fas fa-comment" style="font-size:10px;"></i>
+              ${t.followupCount || 0}
+            </span>
+            <i class="fas fa-chevron-right text-gray-300" style="font-size:12px;"></i>
+          </div>
+        </div>
+      </a>`;
+  }
+
+  (async function init() {
+    await loadCategory();
+    await loadTickets();
+    document.getElementById('filter-search').addEventListener('input', updateFilterPill);
+    document.getElementById('filter-search').addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        applyFilters();
+      }
+    });
+    document.getElementById('filter-status').addEventListener('change', applyFilters);
+    document.getElementById('sort-by').addEventListener('change', applyFilters);
+    updateFilterPill();
+  })();
+</script>
+{% endblock %}

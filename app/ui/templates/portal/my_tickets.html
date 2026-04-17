@@ -1,0 +1,350 @@
+{% extends "portal/shell.html" %}
+{% block title %}Mis Tickets — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-4 py-8">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="font-bold text-gray-800 text-xl leading-tight">Mis Tickets</h1>
+      <p class="text-xs text-gray-500 mt-0.5" id="tickets-subtitle">Cargando...</p>
+    </div>
+    <a href="{{ base }}/portal/new"
+       class="btn btn-primary gap-1.5 shadow-sm no-underline">
+      <i class="fas fa-plus-circle"></i>Abrir Ticket
+    </a>
+  </div>
+
+  <!-- Filters -->
+  {% include "portal/_filters.html" %}
+
+  <!-- Grouped tickets -->
+  <div id="tickets-container" class="space-y-3">
+    <!-- skeleton -->
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div class="section-header">
+        <div class="flex items-center gap-2">
+          <div class="skeleton h-3.5 w-3.5 rounded"></div>
+          <div class="skeleton h-4 w-28"></div>
+        </div>
+        <div class="skeleton h-4 w-16"></div>
+      </div>
+      <div class="p-3 space-y-2">
+        <div class="skeleton h-14 rounded-lg"></div>
+        <div class="skeleton h-14 rounded-lg"></div>
+      </div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div class="section-header">
+        <div class="flex items-center gap-2">
+          <div class="skeleton h-3.5 w-3.5 rounded"></div>
+          <div class="skeleton h-4 w-24"></div>
+        </div>
+        <div class="skeleton h-4 w-12"></div>
+      </div>
+      <div class="p-3 space-y-2">
+        <div class="skeleton h-14 rounded-lg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state (hidden by default) -->
+  <div id="empty-state" class="hidden bg-white border border-gray-200 rounded-xl p-12 text-center shadow-sm">
+    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-inbox text-3xl text-gray-300"></i>
+    </div>
+    <p class="text-base text-gray-600 font-semibold">No tenés tickets aún</p>
+    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Abrí uno cuando necesites coordinar una solicitud con un compañero.</p>
+    <a href="{{ base }}/portal/new"
+       class="mt-5 btn btn-primary gap-2 no-underline inline-flex">
+      <i class="fas fa-plus"></i>Abrir mi primer ticket
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let allTickets = [];
+  let queueMetaById = {};
+  let myUsername = '';
+  const ACTIVE_STATUSES  = ['open', 'in_progress', 'reopened', 'pending'];
+  const ARCHIVED_STATUSES = ['resolved', 'closed'];
+
+  // Fallback visual mapping when category doesn't define icon/color
+  const CAT_ICONS  = ['laptop','users','calculator','file-pen-line','search','handshake','globe','heart','tag','layers'];
+  const CAT_COLORS = ['#3b82f6','#8b5cf6','#22c55e','#f97316','#14b8a6','#6366f1','#0ea5e9','#ec4899','#eab308','#64748b'];
+
+  async function loadTickets() {
+    myUsername = getUser()?.userName || '';
+    try {
+      const qResp = await apiFetch('/queues/');
+      if (qResp && qResp.ok) {
+        const queues = await qResp.json();
+        queueMetaById = Object.fromEntries(
+          queues.map((q, i) => [
+            q.id,
+            {
+              icon: (q.icon && String(q.icon).trim()) || CAT_ICONS[i % CAT_ICONS.length],
+              color: (q.color && String(q.color).trim()) || CAT_COLORS[i % CAT_COLORS.length],
+            },
+          ])
+        );
+      }
+    } catch {}
+
+    const resp = await apiFetch('/my/tickets/?limit=200&include_closed=true');
+    if (!resp || !resp.ok) {
+      document.getElementById('tickets-container').innerHTML =
+        '<p class="text-sm text-red-500 text-center py-6">Error al cargar los tickets.</p>';
+      return;
+    }
+    const data = await resp.json();
+    allTickets = data.data || [];
+
+    const active = allTickets.filter(t => !ARCHIVED_STATUSES.includes(t.status));
+    const subtitle = `${active.length} ticket${active.length !== 1 ? 's' : ''} activo${active.length !== 1 ? 's' : ''}`;
+    document.getElementById('tickets-subtitle').textContent = subtitle;
+
+    applyFilters();
+  }
+
+  function updateFilterPill() {
+    const q = document.getElementById('filter-search').value.trim();
+    const status = document.getElementById('filter-status').value;
+    const sortSel = document.getElementById('sort-by');
+    const sortBy = sortSel.value;
+    const defaultSort = sortSel.dataset.defaultSort || 'updated_desc';
+    const active = q.length > 0 || status !== '' || sortBy !== defaultSort;
+    document.getElementById('filters-active-pill').classList.toggle('hidden', !active);
+  }
+
+  function clearFilters() {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('sort-by').value = 'updated_desc';
+    applyFilters();
+  }
+
+  function sortTickets(items, sortBy) {
+    const out = [...items];
+    if (sortBy === 'status') {
+      out.sort((a, b) => {
+        const d = statusOrder(a.status) - statusOrder(b.status);
+        if (d !== 0) return d;
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+      });
+      return out;
+    }
+    if (sortBy === 'updated_desc') {
+      out.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return out;
+    }
+    if (sortBy === 'updated_asc') {
+      out.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+      return out;
+    }
+    if (sortBy === 'title_asc') {
+      out.sort((a, b) => a.title.localeCompare(b.title));
+      return out;
+    }
+    if (sortBy === 'title_desc') {
+      out.sort((a, b) => b.title.localeCompare(a.title));
+      return out;
+    }
+    return out;
+  }
+
+  function applyFilters() {
+    const q = document.getElementById('filter-search').value.toLowerCase().trim();
+    const status = document.getElementById('filter-status').value;
+    const sortBy = document.getElementById('sort-by').value;
+
+    let filtered = allTickets.filter(t => {
+      const matchesSearch = !q ||
+        t.title.toLowerCase().includes(q) ||
+        (t.queueName || '').toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q);
+
+      let matchesStatus = true;
+      if (status === 'active') {
+        matchesStatus = ACTIVE_STATUSES.includes(t.status);
+      } else if (status === 'archived') {
+        matchesStatus = ARCHIVED_STATUSES.includes(t.status);
+      } else if (status) {
+        matchesStatus = t.status === status;
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+
+    filtered = sortTickets(filtered, sortBy);
+    renderGrouped(filtered);
+    updateFilterPill();
+  }
+
+  function renderGrouped(tickets) {
+    const container = document.getElementById('tickets-container');
+    const emptyState = document.getElementById('empty-state');
+
+    if (!tickets.length) {
+      container.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+    emptyState.classList.add('hidden');
+
+    // Group by queueId
+    const groups = {};
+    const groupOrder = [];
+    tickets.forEach(t => {
+      const key = t.queueId;
+      if (!groups[key]) {
+        groups[key] = { name: t.queueName || 'Sin categoría', active: [], archived: [] };
+        groupOrder.push(key);
+      }
+      if (ARCHIVED_STATUSES.includes(t.status)) {
+        groups[key].archived.push(t);
+      } else {
+        groups[key].active.push(t);
+      }
+    });
+
+    container.innerHTML = groupOrder.map((qid, idx) => {
+      const g = groups[qid];
+      const queueMeta = queueMetaById[qid] || {
+        icon: CAT_ICONS[idx % CAT_ICONS.length],
+        color: CAT_COLORS[idx % CAT_COLORS.length],
+      };
+      const color = queueMeta.color;
+      const icon  = queueMeta.icon;
+      const activeCount  = g.active.length;
+      const sectionId  = 'grp-' + qid;
+      const archivedId = 'archived-' + qid;
+      const arrowId    = 'arrow-' + qid;
+
+      // Status summary badges for the section header
+      const statusSummary = [];
+      const statusCounts = {};
+      g.active.forEach(t => { statusCounts[t.status] = (statusCounts[t.status] || 0) + 1; });
+      Object.keys(statusCounts).forEach(s => {
+        statusSummary.push(statusBadge(s));
+      });
+
+      const countBadge = `<span class="text-xs text-gray-400 font-medium">${activeCount} ticket${activeCount !== 1 ? 's' : ''}</span>`;
+
+      // Active ticket rows
+      const activeRows = g.active.map(t => renderTicketRow(t)).join('');
+
+      // Archived section (collapsed by default)
+      const archivedRows = g.archived.length ? `
+        <div class="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors select-none"
+             onclick="toggleArchived('${qid}')">
+          <span class="flex items-center gap-2 text-xs text-gray-400">
+            <i class="fas fa-archive text-gray-300" style="font-size:12px;"></i>
+            ${g.archived.length} ticket${g.archived.length !== 1 ? 's' : ''} archivado${g.archived.length !== 1 ? 's' : ''} / cerrado${g.archived.length !== 1 ? 's' : ''}
+          </span>
+          <i id="${arrowId}" class="fas fa-chevron-down text-gray-300 transition-transform duration-200" style="font-size:12px;"></i>
+        </div>
+        <div id="${archivedId}" class="hidden bg-gray-50/30">
+          ${g.archived.map(t => renderTicketRow(t, true)).join('')}
+        </div>` : '';
+
+      return `
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden" id="${sectionId}">
+          <!-- Section header -->
+          <div class="section-header">
+            <div class="flex items-center gap-2.5">
+              <i class="fas ${window.toFaIcon(icon)}" style="font-size:13px;color:${color};flex-shrink:0;"></i>
+              <span class="section-label">${esc(g.name)}</span>
+              <div class="flex items-center gap-1.5 ml-1">${statusSummary.join('')}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${countBadge}
+            </div>
+          </div>
+
+          <div class="list-head">
+            <div class="col-span-2">Estado</div>
+            <div class="col-span-2">Ticket</div>
+            <div class="col-span-5">Título</div>
+            <div class="col-span-2">Actualizado</div>
+            <div class="col-span-1 text-right">Resp.</div>
+          </div>
+
+          <!-- Active tickets -->
+          <div>
+            ${activeRows || `<div class="px-3 py-4 text-xs text-gray-400 text-center">Sin tickets activos en esta categoría.</div>`}
+          </div>
+
+          <!-- Archived toggle + rows -->
+          ${archivedRows}
+        </div>`;
+    }).join('');
+
+  }
+
+  function renderTicketRow(t, archived = false) {
+    const id8 = t.id.substring(0, 8);
+    const opacity = archived ? 'opacity-60' : '';
+    const lineThrough = archived ? 'line-through text-gray-400' : 'text-gray-800';
+    const isPending = t.status === 'pending';
+    // ticket appears in /my/tickets/ but I'm not the creator = I'm a watcher
+    const isWatcher = myUsername && t.submitterUsername !== myUsername;
+
+    const pendingBadge = isPending
+      ? `<span class="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md font-medium">
+           <i class="fas fa-exclamation-circle text-[10px]"></i>requiere tu respuesta
+         </span>`
+      : '';
+    const watcherBadge = isWatcher
+      ? `<span class="inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md font-medium">
+           <i class="fas fa-eye text-[10px]"></i>observador
+         </span>`
+      : '';
+    const extraBadges = pendingBadge + watcherBadge;
+
+    return `
+      <a href="${BASE}/portal/tickets/${t.id}"
+         class="ticket-row ${opacity} no-underline ${archived ? 'bg-gray-50/40' : ''}">
+        <div class="md:grid md:grid-cols-12 md:gap-2 md:items-center">
+          <div class="md:col-span-2 flex items-center gap-2 mb-1 md:mb-0">${statusBadge(t.status)}</div>
+          <div class="md:col-span-2 flex items-center gap-2 mb-1 md:mb-0">
+            <span class="font-mono text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded select-all">${esc(id8)}</span>
+          </div>
+          <div class="md:col-span-5 text-[13px] font-semibold ${lineThrough} leading-snug mb-1 md:mb-0">${esc(t.title)}</div>
+          <div class="md:col-span-2 text-[11px] text-gray-500 mb-1 md:mb-0">${timeAgo(t.updatedAt)}</div>
+          <div class="md:col-span-1 flex items-center justify-between md:justify-end gap-2 text-xs text-gray-500">
+            <span class="inline-flex items-center gap-1">
+              <i class="fas fa-comment text-[10px]"></i>
+              ${t.followupCount || 0}
+            </span>
+            <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+          </div>
+        </div>
+        ${extraBadges ? `<div class="mt-1.5 flex flex-wrap gap-1.5">${extraBadges}</div>` : ''}
+      </a>`;
+  }
+
+  function toggleArchived(qid) {
+    const el = document.getElementById('archived-' + qid);
+    const arrow = document.getElementById('arrow-' + qid);
+    const hidden = el.classList.toggle('hidden');
+    arrow.style.transform = hidden ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+
+  (async function init() {
+    await loadTickets();
+    document.getElementById('filter-search').addEventListener('input', updateFilterPill);
+    document.getElementById('filter-search').addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        applyFilters();
+      }
+    });
+    document.getElementById('filter-status').addEventListener('change', applyFilters);
+    document.getElementById('sort-by').addEventListener('change', applyFilters);
+    updateFilterPill();
+  })();
+</script>
+{% endblock %}

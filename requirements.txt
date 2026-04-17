@@ -1,0 +1,24 @@
+# FastAPI and ASGI server
+fastapi==0.128.0
+starlette==0.50.0
+uvicorn[standard]==0.32.1
+gunicorn==23.0.0
+
+# Templates (dashboard)
+jinja2==3.1.6
+
+# Database
+sqlmodel==0.0.31
+asyncpg==0.31.0
+alembic==1.14.0
+
+# Settings and validation
+pydantic==2.12.5
+pydantic-settings==2.12.0
+python-dotenv==1.0.1
+
+# HTTP client (auth + notifications)
+httpx==0.28.1
+
+# Form data (login endpoint)
+python-multipart==0.0.19

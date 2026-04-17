@@ -1,0 +1,334 @@
+{% extends "admin/base.html" %}
+{% block title %}Tickets — Mesa de Ayuda{% endblock %}
+
+{% block page_content %}
+<div class="space-y-4">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-bold">Todos los tickets</h2>
+      <p class="text-sm mt-0.5" style="color: var(--color-text-muted);">
+        <span id="total-count">—</span> tickets en total
+      </p>
+    </div>
+    <button onclick="openModal('modal-new-ticket')" class="btn btn-primary">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      Nuevo Ticket
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="card p-4 flex flex-wrap gap-3">
+    <select id="filter-queue" class="select" onchange="applyFilters()">
+      <option value="">Todas las categorías</option>
+    </select>
+    <select id="filter-status" class="select" onchange="applyFilters()">
+      <!-- Populated via JS: buildStatusOptions('Todos los estados') -->
+    </select>
+    <select id="filter-priority" class="select" onchange="applyFilters()">
+      <!-- Populated via JS: buildPriorityOptions('Todas las prioridades') -->
+    </select>
+    <input type="text" id="filter-search" class="input flex-1 min-w-40" placeholder="Buscar..." oninput="debounceSearch()" />
+    <button id="btn-mine" onclick="toggleMine()" class="btn btn-ghost text-xs">
+      <i data-lucide="user" class="w-3.5 h-3.5"></i> Mis asignados
+    </button>
+  </div>
+
+  <!-- Bulk action toolbar (hidden until ≥1 checkbox selected) -->
+  <div id="bulk-bar" class="hidden items-center gap-3 mb-3 px-4 py-2.5 rounded-lg" style="background: var(--color-accent-soft); border: 1px solid var(--color-accent);">
+    <span id="bulk-count" class="text-sm font-medium" style="color: var(--color-accent-hover);">0 seleccionados</span>
+    <div class="flex items-center gap-2 ml-auto">
+      <select id="bulk-status" class="select text-xs h-8 w-44">
+        <option value="">Cambiar estado…</option>
+      </select>
+      <button onclick="applyBulk()" class="btn btn-primary btn-sm text-xs h-8 px-3">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>Aplicar
+      </button>
+      <button onclick="clearSelection()" class="btn btn-ghost btn-sm text-xs h-8 px-3">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card overflow-hidden">
+    <table class="data-table w-full">
+      <thead>
+        <tr>
+          <th class="w-10 px-4 py-3">
+            <input type="checkbox" id="check-all" class="cursor-pointer accent-blue-500"
+                   onchange="toggleCheckAll(this.checked)" />
+          </th>
+          <th class="w-16">#</th>
+          <th>Título</th>
+          <th>Categoría</th>
+          <th>Estado</th>
+          <th>Prioridad</th>
+          <th>Solicitante</th>
+          <th>Asignado</th>
+          <th>Actualizado</th>
+        </tr>
+      </thead>
+      <tbody id="tickets-tbody">
+        <tr><td colspan="9" class="text-center py-8"><div class="skeleton h-4 w-48 mx-auto"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div id="pagination" class="flex items-center justify-between text-sm" style="color: var(--color-text-muted);">
+    <span id="pag-info">—</span>
+    <div class="flex gap-2">
+      <button id="btn-prev" onclick="changePage(-1)" class="btn btn-ghost text-xs" disabled>
+        <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+      </button>
+      <button id="btn-next" onclick="changePage(1)" class="btn btn-ghost text-xs" disabled>
+        Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nuevo Ticket -->
+<div id="modal-new-ticket" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Nuevo Ticket</h3>
+      <button onclick="closeModal('modal-new-ticket')" class="btn btn-ghost p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <form id="form-new-ticket" class="space-y-3">
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Categoría *</label>
+        <select id="new-queue" class="select w-full" required></select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Título *</label>
+        <input type="text" id="new-title" class="input" required />
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Descripción *</label>
+        <textarea id="new-description" class="textarea" rows="4" required></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Prioridad</label>
+          <select id="new-priority" class="select w-full">
+            <!-- Populated via JS: buildPriorityOptions() -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Email solicitante</label>
+          <input type="email" id="new-email" class="input" placeholder="auto" />
+        </div>
+      </div>
+      <div id="new-error" class="hidden text-sm rounded-lg px-3 py-2" style="background: var(--color-error-soft); color: var(--color-error);"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeModal('modal-new-ticket')" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          Crear Ticket
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let currentPage = 0;
+  const PAGE_SIZE = 20;
+  let searchTimer;
+  let showMine = false;
+
+  // Populate selects from APP_META via constants.js helpers
+  document.getElementById('filter-status').innerHTML = buildStatusOptions('Todos los estados');
+  document.getElementById('filter-priority').innerHTML = buildPriorityOptions('Todas las prioridades');
+  document.getElementById('new-priority').innerHTML = buildPriorityOptions('Normal');
+  document.getElementById('bulk-status').innerHTML = buildStatusOptions('Cambiar estado…');
+
+  function toggleMine() {
+    showMine = !showMine;
+    document.getElementById('btn-mine').classList.toggle('btn-primary', showMine);
+    document.getElementById('btn-mine').classList.toggle('btn-ghost', !showMine);
+    currentPage = 0;
+    loadTickets();
+  }
+
+  async function loadQueues() {
+    const resp = await apiFetch('/queues/');
+    if (!resp || !resp.ok) return;
+    const queues = await resp.json();
+    const sel = document.getElementById('filter-queue');
+    const newSel = document.getElementById('new-queue');
+    queues.forEach(q => {
+      sel.innerHTML += `<option value="${q.id}">${esc(q.name)}</option>`;
+      newSel.innerHTML += `<option value="${q.id}">${esc(q.name)}</option>`;
+    });
+  }
+
+  async function loadTickets() {
+    const queueId = document.getElementById('filter-queue').value;
+    const status = document.getElementById('filter-status').value;
+    const priority = document.getElementById('filter-priority').value;
+    const search = document.getElementById('filter-search').value.trim();
+
+    const params = new URLSearchParams({ skip: currentPage * PAGE_SIZE, limit: PAGE_SIZE });
+    if (queueId) params.set('queue_id', queueId);
+    if (status) params.set('status', status);
+    if (priority) params.set('priority', priority);
+    if (search) params.set('search', search);
+    if (showMine) {
+      const me = getUser();
+      if (me) params.set('assigned_to', me.userName);
+    }
+
+    const resp = await apiFetch('/tickets/?' + params);
+    if (!resp || !resp.ok) return;
+    const data = await resp.json();
+
+    document.getElementById('total-count').textContent = data.meta.total;
+    renderTickets(data.data);
+    renderPagination(data.meta);
+  }
+
+  function renderTickets(tickets) {
+    const tbody = document.getElementById('tickets-tbody');
+    if (!tickets.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8" style="color: var(--color-text-muted);">Sin tickets</td></tr>';
+      return;
+    }
+    tbody.innerHTML = tickets.map(t => `
+      <tr onclick="window.location.href='${BASE}/dashboard/tickets/${t.id}'">
+        <td class="w-10 px-4 py-3" onclick="event.stopPropagation()">
+          <input type="checkbox" class="ticket-check cursor-pointer accent-blue-500"
+                 value="${t.id}" onchange="onCheckChange()" />
+        </td>
+        <td class="font-mono text-xs">#${t.id.substring(0, 8)}</td>
+        <td class="font-medium max-w-xs truncate" style="color: var(--color-text-primary);">${esc(t.title)}</td>
+        <td>${esc(t.queueName || '—')}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${esc(t.submitterEmail || '—')}</td>
+        <td>${esc(t.assignedTo || '—')}</td>
+        <td>${timeAgo(t.updatedAt)}</td>
+      </tr>
+    `).join('');
+    lucide.createIcons();
+  }
+
+  function renderPagination(meta) {
+    document.getElementById('pag-info').textContent =
+      `${meta.page} de ${meta.totalPages} páginas (${meta.total} tickets)`;
+    document.getElementById('btn-prev').disabled = !meta.hasPrevious;
+    document.getElementById('btn-next').disabled = !meta.hasNext;
+  }
+
+  function changePage(dir) {
+    currentPage = Math.max(0, currentPage + dir);
+    loadTickets();
+  }
+
+  function applyFilters() { currentPage = 0; loadTickets(); }
+  function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilters, 400);
+  }
+
+  document.getElementById('form-new-ticket').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('new-error');
+    errEl.classList.add('hidden');
+    const user = getUser();
+    const body = {
+      queueId: parseInt(document.getElementById('new-queue').value),
+      title: document.getElementById('new-title').value.trim(),
+      description: document.getElementById('new-description').value.trim(),
+      priority: parseInt(document.getElementById('new-priority').value),
+      submitterEmail: document.getElementById('new-email').value.trim() || (user?.mail || ''),
+    };
+    const resp = await apiFetch('/tickets/', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+    if (resp && resp.status === 201) {
+      const ticket = await resp.json();
+      closeModal('modal-new-ticket');
+      showToast('Ticket creado', 'success');
+      window.location.href = BASE + '/dashboard/tickets/' + ticket.id;
+    } else {
+      const err = await resp?.json().catch(() => ({}));
+      errEl.textContent = err.message || 'Error al crear el ticket';
+      errEl.classList.remove('hidden');
+    }
+  });
+
+  // --- Bulk selection ---
+  const selectedIds = new Set();
+
+  function onCheckChange() {
+    const checks = document.querySelectorAll('.ticket-check');
+    const all = document.getElementById('check-all');
+    checks.forEach(c => {
+      if (c.checked) selectedIds.add(c.value);
+      else selectedIds.delete(c.value);
+    });
+    all.checked = checks.length > 0 && [...checks].every(c => c.checked);
+    all.indeterminate = selectedIds.size > 0 && !all.checked;
+    toggleBulkBar();
+  }
+
+  document.getElementById('check-all').addEventListener('change', function () {
+    document.querySelectorAll('.ticket-check').forEach(c => {
+      c.checked = this.checked;
+      if (this.checked) selectedIds.add(c.value);
+      else selectedIds.delete(c.value);
+    });
+    toggleBulkBar();
+  });
+
+  function toggleBulkBar() {
+    const bar = document.getElementById('bulk-bar');
+    if (selectedIds.size > 0) {
+      bar.classList.remove('hidden');
+      bar.classList.add('flex');
+      document.getElementById('bulk-count').textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+    } else {
+      bar.classList.add('hidden');
+      bar.classList.remove('flex');
+    }
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('.ticket-check').forEach(c => c.checked = false);
+    document.getElementById('check-all').checked = false;
+    document.getElementById('check-all').indeterminate = false;
+    toggleBulkBar();
+  }
+
+  async function applyBulk() {
+    const status = document.getElementById('bulk-status').value;
+    if (!status || selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    const resp = await apiFetch('/tickets/bulk', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status }),
+    });
+    if (resp && resp.ok) {
+      const { updated } = await resp.json();
+      showToast(`${updated} ticket${updated !== 1 ? 's' : ''} actualizados`, 'success');
+      selectedIds.clear();
+      document.getElementById('check-all').checked = false;
+      document.getElementById('check-all').indeterminate = false;
+      toggleBulkBar();
+      loadTickets();
+    } else {
+      showToast('Error al actualizar tickets', 'error');
+    }
+  }
+
+  loadQueues();
+  loadTickets();
+</script>
+{% endblock %}

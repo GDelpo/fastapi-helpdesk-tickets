@@ -29,22 +29,23 @@ class Settings(BaseSettings):
     # =========================================================================
     # Application Metadata
     # =========================================================================
-    service_name: str = "Mesa de Ayuda"
+    service_name: str = "Helpdesk"
     project_name: str = "Tickets Service"
     project_version: str = "1.0.0"
-    project_description: str = "Mesa de ayuda interna — Example Corp"
+    project_description: str = "Internal helpdesk / ticketing microservice"
     api_prefix: str = "/api/v1"
 
     # =========================================================================
-    # Branding
+    # Branding (override via .env to customize)
     # =========================================================================
-    company_name: str = "Example Corp"
-    company_legal_tagline: str = "Entidad de ejemplo"
-    portal_navbar_title: str = "Example Corp"
-    support_email: str = "admin@example.com"
-    company_website: str = "https://www.example.com"
+    company_name: str = "Helpdesk"
+    company_legal_tagline: str = ""
+    portal_navbar_title: str = "Helpdesk"
+    support_email: str = "support@example.com"
+    company_website: str = "https://example.com"
     company_logo_url: str = ""
     company_favicon_url: str = ""
+    docs_url: str = ""  # Optional link to external docs shown in admin sidebar
 
     # =========================================================================
     # CORS

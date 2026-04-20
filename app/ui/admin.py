@@ -26,9 +26,9 @@ _MIME = {
 }
 
 _ADMIN_NAV = [
-    {"href_suffix": "/dashboard/", "icon": "layout-dashboard", "label": "Resumen", "key": "overview"},
-    {"href_suffix": "/dashboard/tickets/", "icon": "ticket", "label": "Todos los tickets", "key": "tickets"},
-    {"href_suffix": "/dashboard/queues/", "icon": "layers", "label": "Categorías", "key": "queues"},
+    {"href_suffix": "/dashboard/", "icon": "layout-dashboard", "label": "Overview", "key": "overview"},
+    {"href_suffix": "/dashboard/tickets/", "icon": "ticket", "label": "All tickets", "key": "tickets"},
+    {"href_suffix": "/dashboard/queues/", "icon": "layers", "label": "Categories", "key": "queues"},
 ]
 
 
@@ -89,7 +89,7 @@ async def login_page(request: Request):
 async def dashboard_overview(request: Request):
     return templates.TemplateResponse(
         "admin/overview.html",
-        _admin_ctx(request, page_title="Resumen", active_key="overview"),
+        _admin_ctx(request, page_title="Overview", active_key="overview"),
     )
 
 
@@ -97,7 +97,7 @@ async def dashboard_overview(request: Request):
 async def dashboard_tickets(request: Request):
     return templates.TemplateResponse(
         "admin/tickets.html",
-        _admin_ctx(request, page_title="Todos los tickets", active_key="tickets"),
+        _admin_ctx(request, page_title="All tickets", active_key="tickets"),
     )
 
 
@@ -113,5 +113,5 @@ async def dashboard_ticket_detail(request: Request, ticket_id: str):
 async def dashboard_queues(request: Request):
     return templates.TemplateResponse(
         "admin/queues.html",
-        _admin_ctx(request, page_title="Categorías", active_key="queues"),
+        _admin_ctx(request, page_title="Categories", active_key="queues"),
     )

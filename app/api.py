@@ -87,10 +87,10 @@ async def login(
     client: httpx.AsyncClient = request.app.state.http_client
     data = await identity_client.login(form_data.username, form_data.password, client)
     if not data:
-        raise AuthenticationError("Usuario o contraseña incorrectos")
+        raise AuthenticationError("Invalid username or password")
     access_token = data.get("accessToken") or data.get("access_token")
     if not access_token:
-        raise AuthenticationError("Respuesta de autenticación inválida")
+        raise AuthenticationError("Invalid authentication response")
     return LoginResponse(
         access_token=access_token,
         token_type=data.get("tokenType") or data.get("token_type", "bearer"),
@@ -511,7 +511,7 @@ async def create_my_ticket(
 @router.get("/my/notifications/", tags=["Portal"])
 async def my_notifications(
     current_user: CurrentUser,
-    unread: Annotated[bool, Query(description="Solo no leídas")] = False,
+    unread: Annotated[bool, Query(description="Only unread")] = False,
     limit: Annotated[int, Query(ge=1, le=50)] = 10,
     offset: Annotated[int, Query(ge=0)] = 0,
     notif_repo: NotificationRepository = Depends(get_notification_repository),

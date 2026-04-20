@@ -46,7 +46,7 @@ async def save_attachments(
 
     if len(files) > settings.attachments_max_per_ticket:
         raise ValidationError(
-            f"Máximo {settings.attachments_max_per_ticket} archivos por ticket"
+            f"Max {settings.attachments_max_per_ticket} files per ticket"
         )
 
     ticket_dir = STORAGE_ROOT / ticket_id.hex[:8]
@@ -59,8 +59,8 @@ async def save_attachments(
         content_type = file.content_type or "application/octet-stream"
         if settings.attachments_allowed_types and content_type not in settings.attachments_allowed_types:
             raise ValidationError(
-                f"Tipo de archivo no permitido: {content_type}. "
-                f"Permitidos: {', '.join(settings.attachments_allowed_types)}"
+                f"File type not allowed: {content_type}. "
+                f"Allowed: {', '.join(settings.attachments_allowed_types)}"
             )
 
         # Read and validate size
@@ -68,7 +68,7 @@ async def save_attachments(
         size = len(content)
         if size > settings.attachments_max_size_bytes:
             raise ValidationError(
-                f"Archivo '{file.filename}' excede el máximo de {settings.attachments_max_size_mb} MB"
+                f"File '{file.filename}' exceeds the max size of {settings.attachments_max_size_mb} MB"
             )
 
         # Generate unique storage name

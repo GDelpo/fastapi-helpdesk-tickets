@@ -78,11 +78,11 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
       // Dedup by name+size+lastModified
       if (_files.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) continue;
       if (file.size > maxBytes) {
-        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" supera ${maxMb} MB — no se agregó.`, 'warning');
+        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" exceeds ${maxMb} MB — not added.`, 'warning');
         continue;
       }
       if (!ALLOWED_MIME.has(file.type)) {
-        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" tipo no permitido (${file.type || 'desconocido'}).`, 'warning');
+        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" file type not allowed (${file.type || 'unknown'}).`, 'warning');
         continue;
       }
       _files.push(file);
@@ -143,11 +143,11 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
       // Intenta parsear el error del backend
       const err = await resp.json().catch(() => ({}));
       if (typeof showToast === 'function') {
-        showToast(err.message || 'Error al subir adjuntos.', 'error');
+        showToast(err.message || 'Error uploading attachments.', 'error');
       }
       return [];
     } catch (e) {
-      if (typeof showToast === 'function') showToast('Error de red al subir adjuntos.', 'error');
+      if (typeof showToast === 'function') showToast('Network error while uploading attachments.', 'error');
       return [];
     }
   }
@@ -186,7 +186,7 @@ window.renderAttachmentLink = function (a) {
 window.downloadAttachment = async function(ticketId, attId, filename) {
   const token = localStorage.getItem('tk_token');
   if (!token) {
-    if (typeof showToast === 'function') showToast('Sesión expirada. Volvé a iniciar sesión.', 'error');
+    if (typeof showToast === 'function') showToast('Session expired. Please sign in again.', 'error');
     return;
   }
   const url = `${BASE}/api/v1/tickets/${ticketId}/attachments/${attId}/download`;
@@ -195,7 +195,7 @@ window.downloadAttachment = async function(ticketId, attId, filename) {
       headers: { 'Authorization': 'Bearer ' + token },
     });
     if (!resp.ok) {
-      if (typeof showToast === 'function') showToast('Error al descargar el archivo.', 'error');
+      if (typeof showToast === 'function') showToast('Error downloading file.', 'error');
       return;
     }
     const blob = await resp.blob();
@@ -209,6 +209,6 @@ window.downloadAttachment = async function(ticketId, attId, filename) {
       link.remove();
     }, 100);
   } catch (e) {
-    if (typeof showToast === 'function') showToast('Error de red al descargar el archivo.', 'error');
+    if (typeof showToast === 'function') showToast('Network error while downloading file.', 'error');
   }
 };

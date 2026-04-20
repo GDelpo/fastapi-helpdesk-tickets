@@ -39,18 +39,18 @@
           <div id="bell-dropdown"
                class="hidden absolute right-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
             <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-              <span class="text-xs font-bold text-gray-700">Notificaciones</span>
+              <span class="text-xs font-bold text-gray-700">Notifications</span>
               <button onclick="markAllRead()" class="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                Marcar todas como leídas
+                Mark all as read
               </button>
             </div>
             <div id="notif-list" class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-              <div class="px-4 py-4 text-center text-xs text-gray-400">Cargando…</div>
+              <div class="px-4 py-4 text-center text-xs text-gray-400">Loading…</div>
             </div>
             <div class="px-4 py-2 border-t border-gray-100 text-center">
               <a href="{{ base }}/portal/tickets/" onclick="closeBell()"
                  class="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors no-underline">
-                Ver todos mis tickets →
+                View all my tickets →
               </a>
             </div>
           </div>
@@ -78,7 +78,7 @@
             <button onclick="logout()"
                     class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left">
               <i class="fa-solid fa-sign-out-alt"></i>
-              Salir
+              Sign out
             </button>
           </div>
         </div>
@@ -86,7 +86,7 @@
         <!-- Separator -->
         <div class="h-5 w-px bg-gray-200 mx-0.5"></div>
 
-        <!-- Nav right items (Mis Tickets, etc.) -->
+        <!-- Nav right items (My Tickets, etc.) -->
         {% for item in nav_right %}
         <a href="{{ item.href }}" class="nav-link{% if item.active %} active{% endif %}">
           <i class="{{ item.fa_icon }}"></i>
@@ -94,7 +94,7 @@
         </a>
         {% endfor %}
 
-        <!-- CTA: Abrir ticket -->
+        <!-- CTA: Open ticket -->
         <a href="{{ nav_cta.href }}"
            class="nav-link font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 rounded-md px-3 py-1 ml-1{% if nav_cta.active %} active{% endif %}">
           <i class="{{ nav_cta.fa_icon }}"></i>

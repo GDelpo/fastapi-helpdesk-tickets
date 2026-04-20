@@ -1,12 +1,12 @@
 {% extends "portal/shell.html" %}
-{% block title %}Categorías — Mesa de Ayuda{% endblock %}
+{% block title %}Categories — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="max-w-4xl mx-auto space-y-6 py-8">
   <!-- Header -->
   <div>
-    <h1 class="font-bold text-gray-800 text-2xl">Áreas y categorías</h1>
-    <p class="text-sm text-gray-500 mt-1">Seleccioná el área correspondiente a tu consulta para abrir un ticket directamente.</p>
+    <h1 class="font-bold text-gray-800 text-2xl">Areas and categories</h1>
+    <p class="text-sm text-gray-500 mt-1">Pick the area matching your query to open a ticket directly.</p>
   </div>
 
   <!-- Grid -->
@@ -135,17 +135,17 @@
     const isOtros = (q.name || '').toLowerCase() === 'otros';
 
     const parentHint = parentName
-      ? `<div class="text-[11px] text-gray-400 mt-0.5">Subcategoría de ${esc(parentName)}</div>`
+      ? `<div class="text-[11px] text-gray-400 mt-0.5">Subcategory of ${esc(parentName)}</div>`
       : '';
 
     const countLabel = openCount > 0
       ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${c.btnBg} ${c.btnText}">
           <i class="fas fa-ticket-alt" style="font-size:10px;"></i>
-          ${openCount} abierto${openCount !== 1 ? 's' : ''}
+          ${openCount} open
         </span>`
       : `<span class="inline-flex items-center gap-1 text-xs text-gray-400">
           <i class="fas fa-ticket-alt" style="font-size:10px;color:#d1d5db;"></i>
-          sin tickets abiertos
+          no open tickets
         </span>`;
 
     const borderExtra = isOtros ? 'border-dashed' : '';
@@ -170,7 +170,7 @@
           <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${c.btnBg} ${c.btnText} border ${c.btnBorder} hover:${c.btnHoverBg} hover:text-white"
                   onclick="event.stopPropagation();openNewTicket(${q.id})">
             <i class="fas fa-plus" style="font-size:10px;"></i>
-            Abrir ticket
+            Open ticket
           </button>
         </div>
       </div>`;
@@ -180,7 +180,7 @@
     const resp = await apiFetch('/queues/');
     if (!resp || !resp.ok) {
       document.getElementById('categories-grid').innerHTML =
-        '<p class="text-sm text-gray-400 text-center py-8">No se pudieron cargar las categorías.</p>';
+        '<p class="text-sm text-gray-400 text-center py-8">Could not load categories.</p>';
       return;
     }
     const queues = await resp.json();
@@ -204,7 +204,7 @@
     const groups = groupQueues(activeQueues);
 
     if (!groups.length) {
-      grid.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Sin categorías disponibles.</p>';
+      grid.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">No categories available.</p>';
       return;
     }
 
@@ -235,7 +235,7 @@
         const orphanCards = group.children.map(child => renderQueueCard(child, colorIdx++, countMap, { compact: true })).join('');
         return `
           <section class="bg-white border border-gray-200 rounded-lg shadow-sm p-4" data-animate-fade>
-            <div class="text-xs font-semibold uppercase tracking-[0.07em] text-gray-500 mb-3">Sin categoría padre</div>
+            <div class="text-xs font-semibold uppercase tracking-[0.07em] text-gray-500 mb-3">No parent category</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${orphanCards}</div>
           </section>`;
       }
@@ -260,15 +260,15 @@
               </div>
               <div class="min-w-0">
                 <h2 class="text-sm font-bold text-gray-800 truncate">${esc(group.root.name)}</h2>
-                <p class="text-xs text-gray-500 mt-0.5 truncate">${esc(group.root.description || 'Categoría principal')}</p>
+                <p class="text-xs text-gray-500 mt-0.5 truncate">${esc(group.root.description || 'Main category')}</p>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <span class="text-xs font-medium text-gray-500">${sectionOpenCount} activo${sectionOpenCount !== 1 ? 's' : ''}</span>
+              <span class="text-xs font-medium text-gray-500">${sectionOpenCount} active</span>
               <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${gc.btnBg} ${gc.btnText} border ${gc.btnBorder} hover:${gc.btnHoverBg} hover:text-white"
                       onclick="openInCategory(${group.root.id})">
                 <i class="fas fa-list" style="font-size:10px;"></i>
-                Ver todos
+                View all
               </button>
             </div>
           </div>

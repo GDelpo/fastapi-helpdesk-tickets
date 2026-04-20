@@ -27,12 +27,12 @@ _MIME = {
 }
 
 _PORTAL_NAV_LEFT = [
-    {"href_suffix": "/portal/", "label": "Inicio", "key": "inicio", "icon": "house", "fa_icon": "fa-solid fa-house"},
-    {"href_suffix": "/portal/categories/", "label": "Categorías", "key": "categories", "icon": "layout-grid", "fa_icon": "fa-solid fa-table-cells-large"},
+    {"href_suffix": "/portal/", "label": "Home", "key": "inicio", "icon": "house", "fa_icon": "fa-solid fa-house"},
+    {"href_suffix": "/portal/categories/", "label": "Categories", "key": "categories", "icon": "layout-grid", "fa_icon": "fa-solid fa-table-cells-large"},
 ]
-_PORTAL_NAV_CTA = {"href_suffix": "/portal/new", "label": "Abrir Ticket", "key": "new", "icon": "plus-circle", "fa_icon": "fa-solid fa-circle-plus"}
+_PORTAL_NAV_CTA = {"href_suffix": "/portal/new", "label": "Open Ticket", "key": "new", "icon": "plus-circle", "fa_icon": "fa-solid fa-circle-plus"}
 _PORTAL_NAV_RIGHT = [
-    {"href_suffix": "/portal/tickets/", "label": "Mis Tickets", "key": "my", "icon": "ticket", "fa_icon": "fa-solid fa-list-check"},
+    {"href_suffix": "/portal/tickets/", "label": "My Tickets", "key": "my", "icon": "ticket", "fa_icon": "fa-solid fa-list-check"},
 ]
 
 
@@ -107,7 +107,7 @@ async def portal_login(request: Request):
 async def portal_home(request: Request):
     return templates.TemplateResponse(
         "portal/inicio.html",
-        _portal_ctx(request, page_title="Inicio", active_key="inicio"),
+        _portal_ctx(request, page_title="Home", active_key="inicio"),
     )
 
 
@@ -115,7 +115,7 @@ async def portal_home(request: Request):
 async def portal_categories(request: Request):
     return templates.TemplateResponse(
         "portal/categories.html",
-        _portal_ctx(request, page_title="Categorías", active_key="categories"),
+        _portal_ctx(request, page_title="Categories", active_key="categories"),
     )
 
 
@@ -123,7 +123,7 @@ async def portal_categories(request: Request):
 async def portal_category_tickets(request: Request, queue_id: int):
     return templates.TemplateResponse(
         "portal/category_tickets.html",
-        _portal_ctx(request, page_title="Categoría", active_key="categories", queue_id=queue_id),
+        _portal_ctx(request, page_title="Category", active_key="categories", queue_id=queue_id),
     )
 
 
@@ -131,7 +131,7 @@ async def portal_category_tickets(request: Request, queue_id: int):
 async def portal_tickets(request: Request):
     return templates.TemplateResponse(
         "portal/my_tickets.html",
-        _portal_ctx(request, page_title="Mis Tickets", active_key="my"),
+        _portal_ctx(request, page_title="My Tickets", active_key="my"),
     )
 
 
@@ -141,7 +141,7 @@ async def portal_new_ticket(request: Request):
         "portal/new_ticket.html",
         _portal_ctx(
             request,
-            page_title="Abrir Ticket",
+            page_title="Open Ticket",
             active_key="new",
             today=date.today().isoformat(),
         ),

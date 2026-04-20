@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}{{ service_name if service_name else 'Mesa de Ayuda' }}{% endblock %}</title>
+  <title>{% block title %}{{ service_name if service_name else 'Helpdesk' }}{% endblock %}</title>
   <link rel="icon" href="{{ company_favicon_url if company_favicon_url else 'data:,' }}">
 
   <!-- Tailwind v4 (self-hosted browser build) -->
@@ -220,8 +220,7 @@
   // ========================================================================
   function formatDate(iso) {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('es-AR', {
-      timeZone: 'America/Argentina/Buenos_Aires',
+    return new Date(iso).toLocaleString('en-US', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
@@ -231,7 +230,7 @@
     if (!iso) return '—';
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Ahora';
+    if (mins < 1) return 'Now';
     if (mins < 60) return mins + ' min';
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return hrs + 'h';
@@ -285,7 +284,7 @@
     if (!getToken()) { goLogin(); return; }
     const user = getUser();
     if (user) {
-      // Empleados no tienen acceso al dashboard de admin — redirigir al portal
+      // Employees don't have access to the admin dashboard — redirect to the portal
       if (!isAdmin()) {
         window.location.href = BASE + '/portal/';
         return;

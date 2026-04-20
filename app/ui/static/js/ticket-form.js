@@ -228,26 +228,26 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
     const parentId    = parentHidden ? (parentHidden.value || null) : null;
     const assignedTo  = assignedHidden ? (assignedHidden.value || null) : null;
 
-    if (!queueId)     { errEl.textContent = 'Seleccioná una categoría.'; errEl.classList.remove('hidden'); return; }
-    if (!title)       { errEl.textContent = 'El título no puede estar vacío.'; errEl.classList.remove('hidden'); return; }
-    if (title.length > 200) { errEl.textContent = 'El título no puede superar 200 caracteres.'; errEl.classList.remove('hidden'); return; }
-    if (description.length < 10) { errEl.textContent = 'La descripción debe tener al menos 10 caracteres.'; errEl.classList.remove('hidden'); return; }
+    if (!queueId)     { errEl.textContent = 'Select a category.'; errEl.classList.remove('hidden'); return; }
+    if (!title)       { errEl.textContent = 'Title cannot be empty.'; errEl.classList.remove('hidden'); return; }
+    if (title.length > 200) { errEl.textContent = 'Title cannot exceed 200 characters.'; errEl.classList.remove('hidden'); return; }
+    if (description.length < 10) { errEl.textContent = 'Description must be at least 10 characters.'; errEl.classList.remove('hidden'); return; }
 
     const hasMention = /@[\w.]+/.test(description);
     if (!assignedTo && !hasMention) {
       const assignedErr = document.getElementById('assigned-error');
       if (assignedErr) {
-        assignedErr.textContent = 'Asigná un responsable o mencioná a alguien con @ en la descripción.';
+        assignedErr.textContent = 'Assign an owner or mention someone with @ in the description.';
         assignedErr.classList.remove('hidden');
       } else {
-        errEl.textContent = 'Asigná un responsable o mencioná a alguien con @ en la descripción.';
+        errEl.textContent = 'Assign an owner or mention someone with @ in the description.';
         errEl.classList.remove('hidden');
       }
       return;
     }
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
     const user = (typeof getUser === 'function') ? getUser() : null;
 
@@ -274,19 +274,19 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
         }),
       });
     } catch (e) {
-      errEl.textContent = 'Error de red al enviar.';
+      errEl.textContent = 'Network error while sending.';
       errEl.classList.remove('hidden');
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar solicitud';
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit request';
       return;
     }
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      errEl.textContent = err.message || 'Error al crear el ticket.';
+      errEl.textContent = err.message || 'Error creating ticket.';
       errEl.classList.remove('hidden');
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar solicitud';
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit request';
       return;
     }
 
@@ -307,10 +307,10 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
     const err = document.getElementById('title-error');
     if (!el || !err) return;
     if (!el.value.trim()) {
-      err.textContent = 'El título no puede estar vacío.';
+      err.textContent = 'Title cannot be empty.';
       err.classList.remove('hidden'); el.classList.add('border-red-300');
     } else if (el.value.length > 200) {
-      err.textContent = 'Máximo 200 caracteres.';
+      err.textContent = 'Max. 200 characters.';
       err.classList.remove('hidden'); el.classList.add('border-red-300');
     } else {
       err.classList.add('hidden'); el.classList.remove('border-red-300');
@@ -322,10 +322,10 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
     const err = document.getElementById('desc-error');
     if (!el || !err) return;
     if (!el.value.trim()) {
-      err.textContent = 'La descripción no puede estar vacía.';
+      err.textContent = 'Description cannot be empty.';
       err.classList.remove('hidden'); el.classList.add('border-red-300');
     } else if (el.value.trim().length < 10) {
-      err.textContent = 'Debe tener al menos 10 caracteres.';
+      err.textContent = 'Must be at least 10 characters.';
       err.classList.remove('hidden'); el.classList.add('border-red-300');
     } else {
       err.classList.add('hidden'); el.classList.remove('border-red-300');

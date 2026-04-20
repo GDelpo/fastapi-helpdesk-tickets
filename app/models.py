@@ -40,12 +40,12 @@ class RelationType(str, enum.Enum):
 # =============================================================================
 
 STATUS_LABELS: dict[str, str] = {
-    "open":        "Abierto",
-    "in_progress": "En curso",
-    "pending":     "Pendiente",
-    "reopened":    "Reabierto",
-    "resolved":    "Resuelto",
-    "closed":      "Cerrado",
+    "open":        "Open",
+    "in_progress": "In progress",
+    "pending":     "Pending",
+    "reopened":    "Reopened",
+    "resolved":    "Resolved",
+    "closed":      "Closed",
 }
 
 STATUS_ORDER: dict[str, int] = {
@@ -54,11 +54,11 @@ STATUS_ORDER: dict[str, int] = {
 }
 
 PRIORITY_LABELS: dict[str, str] = {
-    "1": "Crítica",
-    "2": "Alta",
+    "1": "Critical",
+    "2": "High",
     "3": "Normal",
-    "4": "Baja",
-    "5": "Muy baja",
+    "4": "Low",
+    "5": "Very low",
 }
 
 

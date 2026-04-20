@@ -1,12 +1,12 @@
 {% extends "admin/base.html" %}
-{% block title %}Ticket #{{ ticket_id }} — Mesa de Ayuda{% endblock %}
+{% block title %}Ticket #{{ ticket_id }} — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="space-y-4" id="ticket-container">
   <!-- Back -->
   <a href="{{ base }}/dashboard/tickets/" class="inline-flex items-center gap-2 text-sm btn btn-ghost px-0" style="color: var(--color-text-muted);">
     <i data-lucide="arrow-left" class="w-4 h-4"></i>
-    Volver a tickets
+    Back to tickets
   </a>
 
   <!-- Ticket header -->
@@ -21,14 +21,14 @@
         <h2 id="tk-title" class="text-xl font-bold">
           <div class="skeleton h-6 w-64"></div>
         </h2>
-        <p id="tk-meta" class="text-xs" style="color: var(--color-text-muted);">Cargando…</p>
+        <p id="tk-meta" class="text-xs" style="color: var(--color-text-muted);">Loading…</p>
       </div>
       <div class="flex gap-2" id="tk-actions" data-admin-only>
         <button onclick="openModal('modal-edit')" class="btn btn-ghost text-xs">
-          <i data-lucide="edit" class="w-3.5 h-3.5"></i> Editar
+          <i data-lucide="edit" class="w-3.5 h-3.5"></i> Edit
         </button>
         <button onclick="confirmClose()" class="btn btn-danger text-xs">
-          <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Cerrar
+          <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Close
         </button>
       </div>
     </div>
@@ -41,44 +41,44 @@
 
     <!-- Ticket attachments -->
     <div id="tk-attachments-block" class="hidden">
-      <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--color-text-muted);">Adjuntos</div>
+      <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--color-text-muted);">Attachments</div>
       <div id="tk-attachments" class="flex flex-wrap gap-2"></div>
     </div>
 
     <!-- Meta row -->
     <div class="grid grid-cols-2 gap-4 pt-2 border-t text-xs" style="border-color: var(--color-border-subtle); color: var(--color-text-muted);">
-      <div><span class="uppercase tracking-wider">Categoría</span><div id="tk-queue" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
-      <div><span class="uppercase tracking-wider">Asignado a</span><div id="tk-assigned" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">Sin asignar</div></div>
-      <div><span class="uppercase tracking-wider">Solicitante</span><div id="tk-submitter" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
-      <div><span class="uppercase tracking-wider">Creado</span><div id="tk-created" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+      <div><span class="uppercase tracking-wider">Category</span><div id="tk-queue" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+      <div><span class="uppercase tracking-wider">Assigned to</span><div id="tk-assigned" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">Unassigned</div></div>
+      <div><span class="uppercase tracking-wider">Submitter</span><div id="tk-submitter" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
+      <div><span class="uppercase tracking-wider">Created</span><div id="tk-created" class="font-medium mt-0.5" style="color: var(--color-text-secondary);">—</div></div>
     </div>
 
     <!-- Resolution -->
     <div id="tk-resolution-block" class="hidden rounded-lg p-3 text-sm" style="background: var(--color-success-soft); color: var(--color-success);">
-      <div class="flex items-center gap-2 font-medium mb-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Resolución</div>
+      <div class="flex items-center gap-2 font-medium mb-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Resolution</div>
       <p id="tk-resolution"></p>
     </div>
   </div>
 
-  <!-- Tickets relacionados -->
+  <!-- Related tickets -->
   <div class="card">
     <div class="px-5 py-3 flex items-center justify-between border-b" style="border-color: var(--color-border-subtle);">
       <h3 class="text-sm font-semibold flex items-center gap-2">
         <i data-lucide="link" class="w-4 h-4" style="color: var(--color-text-muted);"></i>
-        Tickets relacionados
+        Related tickets
       </h3>
       <button onclick="toggleAddRelation()" class="btn btn-ghost btn-sm text-xs">
-        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Agregar
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add
       </button>
     </div>
     <div id="relations-list" class="divide-y" style="border-color: var(--color-border-subtle);"></div>
-    <!-- Formulario agregar relación -->
+    <!-- Add relation form -->
     <div id="add-relation-form" class="hidden p-4 border-t space-y-3" style="border-color: var(--color-border-subtle); background: var(--color-surface-2);">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="relative">
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Buscar ticket</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Search ticket</label>
           <input type="text" id="relation-search-input" class="input text-sm"
-                 placeholder="Escribí título o ID…"
+                 placeholder="Type title or ID…"
                  oninput="searchRelationTickets(this.value)" autocomplete="off" />
           <input type="hidden" id="relation-target-id" />
           <div id="relation-suggestions"
@@ -87,19 +87,19 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Tipo de relación</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Relation type</label>
           <select id="relation-type" class="select w-full text-sm">
-            <option value="related">Relacionado con</option>
-            <option value="duplicate">Duplicado de</option>
-            <option value="blocks">Bloquea a</option>
-            <option value="blocked_by">Bloqueado por</option>
+            <option value="related">Related to</option>
+            <option value="duplicate">Duplicate of</option>
+            <option value="blocks">Blocks</option>
+            <option value="blocked_by">Blocked by</option>
           </select>
         </div>
       </div>
       <div class="flex justify-end gap-2">
-        <button type="button" onclick="toggleAddRelation()" class="btn btn-ghost btn-sm">Cancelar</button>
+        <button type="button" onclick="toggleAddRelation()" class="btn btn-ghost btn-sm">Cancel</button>
         <button type="button" onclick="saveRelation()" class="btn btn-primary btn-sm">
-          <i data-lucide="link" class="w-3.5 h-3.5"></i> Vincular
+          <i data-lucide="link" class="w-3.5 h-3.5"></i> Link
         </button>
       </div>
     </div>
@@ -107,27 +107,27 @@
 
   <!-- Follow-ups timeline -->
   <div class="space-y-3">
-    <h3 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--color-text-muted);">Actividad</h3>
+    <h3 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--color-text-muted);">Activity</h3>
     <div id="followups-list" class="space-y-3"></div>
   </div>
 
   <!-- Add followup form -->
   <div class="card p-5">
-    <h3 class="text-sm font-semibold mb-3">Agregar respuesta</h3>
+    <h3 class="text-sm font-semibold mb-3">Add reply</h3>
     <form id="form-followup" class="space-y-3">
-      <textarea id="fu-comment" class="textarea" rows="4" placeholder="Escribí tu comentario…" required></textarea>
+      <textarea id="fu-comment" class="textarea" rows="4" placeholder="Write your comment…" required></textarea>
       <div class="flex items-center gap-3 flex-wrap" data-admin-only>
         <select id="fu-status" class="select">
           <!-- Populated via JS -->
         </select>
         <div class="flex-1">
-          <input type="text" id="fu-resolution" class="input" placeholder="Resolución (si cambia a Resuelto)…" />
+          <input type="text" id="fu-resolution" class="input" placeholder="Resolution (if changing to Resolved)…" />
         </div>
       </div>
       <!-- File attachment -->
       <div class="flex items-center gap-2">
         <button type="button" onclick="document.getElementById('fu-files').click()" class="btn btn-ghost text-xs">
-          <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Adjuntar archivos
+          <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Attach files
         </button>
         <input id="fu-files" type="file" class="hidden" multiple />
       </div>
@@ -136,46 +136,46 @@
       <div class="flex justify-end">
         <button type="submit" class="btn btn-primary">
           <i data-lucide="send" class="w-4 h-4"></i>
-          Enviar respuesta
+          Send reply
         </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Modal: Editar ticket (admin) -->
+<!-- Modal: Edit ticket (admin) -->
 <div id="modal-edit" class="modal-overlay hidden" data-admin-only>
   <div class="modal">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold">Editar Ticket</h3>
+      <h3 class="text-lg font-semibold">Edit Ticket</h3>
       <button onclick="closeModal('modal-edit')" class="btn btn-ghost p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
     <form id="form-edit" class="space-y-3">
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Estado</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Status</label>
         <select id="edit-status" class="select w-full">
           <!-- Populated via JS -->
         </select>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Prioridad</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Priority</label>
         <select id="edit-priority" class="select w-full">
           <!-- Populated via JS -->
         </select>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Asignado a</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Assigned to</label>
         <select id="edit-assigned" class="select w-full">
-          <option value="">Sin asignar</option>
+          <option value="">Unassigned</option>
         </select>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Resolución</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Resolution</label>
         <textarea id="edit-resolution" class="textarea" rows="3"></textarea>
       </div>
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeModal('modal-edit')" class="btn btn-ghost">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <button type="button" onclick="closeModal('modal-edit')" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save changes</button>
       </div>
     </form>
   </div>
@@ -188,18 +188,18 @@
   let ticket = null;
 
   // Populate selects from APP_META via constants.js helpers
-  document.getElementById('edit-status').innerHTML = buildStatusOptions('Sin cambio');
-  document.getElementById('edit-priority').innerHTML = buildPriorityOptions('Sin cambio');
-  document.getElementById('fu-status').innerHTML = buildStatusOptions('Sin cambio de estado');
+  document.getElementById('edit-status').innerHTML = buildStatusOptions('No change');
+  document.getElementById('edit-priority').innerHTML = buildPriorityOptions('No change');
+  document.getElementById('fu-status').innerHTML = buildStatusOptions('No status change');
 
-  // Inicializar mentions y attachments
+  // Initialize mentions and attachments
   initMentions('fu-comment', API_BASE);
   const fuAttachments = initAttachments({ inputId: 'fu-files', previewId: 'fu-files-preview', maxMb: 10 });
 
   async function loadTicket() {
     const resp = await apiFetch('/tickets/' + TICKET_ID);
     if (!resp || !resp.ok) {
-      showToast('Error al cargar ticket', 'error');
+      showToast('Error loading ticket', 'error');
       return;
     }
     ticket = await resp.json();
@@ -213,10 +213,10 @@
     document.getElementById('tk-priority').innerHTML = priorityBadge(t.priority);
     document.getElementById('tk-title').textContent = t.title;
     document.getElementById('tk-meta').textContent =
-      `Abierto por ${t.createdByName || t.submitterEmail} · ${formatDate(t.createdAt)}`;
+      `Opened by ${t.createdByName || t.submitterEmail} · ${formatDate(t.createdAt)}`;
     document.getElementById('tk-description').textContent = t.description;
     document.getElementById('tk-queue').textContent = t.queueName || '—';
-    document.getElementById('tk-assigned').textContent = t.assignedTo || 'Sin asignar';
+    document.getElementById('tk-assigned').textContent = t.assignedTo || 'Unassigned';
     document.getElementById('tk-submitter').textContent = t.submitterEmail || '—';
     document.getElementById('tk-created').textContent = formatDate(t.createdAt);
     if (t.resolution) {
@@ -228,7 +228,7 @@
     document.getElementById('edit-resolution').value = t.resolution || '';
     if (t.assignedTo) document.getElementById('edit-assigned').value = t.assignedTo;
 
-    // Adjuntos del ticket (excluir los de followups)
+    // Ticket attachments (exclude those from followups)
     const tkAtts = (t.attachments || []).filter(a => !a.followupId);
     const tkAttBlock = document.getElementById('tk-attachments-block');
     const tkAttList  = document.getElementById('tk-attachments');
@@ -238,7 +238,7 @@
         <div class="inline-flex items-center gap-1">
           ${renderAttachmentLink(a)}
           <button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})"
-            class="btn btn-ghost p-1 text-xs" style="color: var(--color-error);" title="Eliminar adjunto">
+            class="btn btn-ghost p-1 text-xs" style="color: var(--color-error);" title="Delete attachment">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>`).join('');
@@ -251,7 +251,7 @@
   function renderFollowUps(followups) {
     const container = document.getElementById('followups-list');
     if (!followups.length) {
-      container.innerHTML = '<p class="text-sm" style="color: var(--color-text-muted);">Sin actividad aún.</p>';
+      container.innerHTML = '<p class="text-sm" style="color: var(--color-text-muted);">No activity yet.</p>';
       return;
     }
     container.innerHTML = followups.map(f => {
@@ -279,7 +279,7 @@
           </div>
           ${f.newStatus ? `<div class="text-xs">${statusBadge(f.newStatus)}</div>` : ''}
           <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">${esc(f.comment)}</p>
-          ${(f.attachments || []).length ? `<div class="flex flex-wrap gap-2 mt-1">${(f.attachments || []).map(a => `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})" class="btn btn-ghost p-1" style="color: var(--color-error);" title="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>`).join('')}</div>` : ''}
+          ${(f.attachments || []).length ? `<div class="flex flex-wrap gap-2 mt-1">${(f.attachments || []).map(a => `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})" class="btn btn-ghost p-1" style="color: var(--color-error);" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
     lucide.createIcons();
@@ -315,9 +315,9 @@
       const followup = await resp.json();
       document.getElementById('fu-comment').value = '';
       document.getElementById('fu-status').value = '';
-      showToast('Respuesta enviada');
+      showToast('Reply sent');
 
-      // Subir adjuntos si los hay
+      // Upload attachments if any
       if (fuAttachments.getFiles().length) {
         await fuAttachments.uploadTo(TICKET_ID, followup.id);
       }
@@ -331,7 +331,7 @@
       loadTicket();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      errEl.textContent = err.message || 'Error al enviar';
+      errEl.textContent = err.message || 'Error sending';
       errEl.classList.remove('hidden');
     }
   });
@@ -350,39 +350,39 @@
     });
     if (resp && resp.ok) {
       closeModal('modal-edit');
-      showToast('Ticket actualizado');
+      showToast('Ticket updated');
       loadTicket();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      showToast(err.message || 'Error al guardar', 'error');
+      showToast(err.message || 'Error saving', 'error');
     }
   });
 
   async function confirmClose() {
-    if (!confirm('¿Cerrar este ticket?')) return;
+    if (!confirm('Close this ticket?')) return;
     const resp = await apiFetch('/tickets/' + TICKET_ID, { method: 'DELETE' });
     if (resp && resp.ok) {
-      showToast('Ticket cerrado');
+      showToast('Ticket closed');
       setTimeout(() => window.location.href = BASE + '/dashboard/tickets/', 1000);
     } else {
       const err = await resp?.json().catch(() => ({}));
-      showToast(err.message || 'Error al cerrar el ticket', 'error');
+      showToast(err.message || 'Error closing ticket', 'error');
     }
   }
 
   // ── Relations ──────────────────────────────────────────────────────────────
 
   const RELATION_META = {
-    related:    { label: 'Relacionado con', icon: 'link' },
-    duplicate:  { label: 'Duplicado de',    icon: 'copy' },
-    blocks:     { label: 'Bloquea a',       icon: 'ban' },
-    blocked_by: { label: 'Bloqueado por',   icon: 'shield-off' },
+    related:    { label: 'Related to',   icon: 'link' },
+    duplicate:  { label: 'Duplicate of', icon: 'copy' },
+    blocks:     { label: 'Blocks',       icon: 'ban' },
+    blocked_by: { label: 'Blocked by',   icon: 'shield-off' },
   };
 
   function renderRelations(relations) {
     const list = document.getElementById('relations-list');
     if (!relations.length) {
-      list.innerHTML = `<p class="px-5 py-3 text-sm" style="color: var(--color-text-muted);">Sin tickets relacionados.</p>`;
+      list.innerHTML = `<p class="px-5 py-3 text-sm" style="color: var(--color-text-muted);">No related tickets.</p>`;
       return;
     }
     list.innerHTML = relations.map(r => {
@@ -400,7 +400,7 @@
            title="${title}">#${shortId} — ${title}</a>
         ${statusHtml}
         <button onclick="deleteRelation('${r.id}')"
-                class="btn btn-ghost btn-sm p-1 shrink-0" title="Eliminar relación">
+                class="btn btn-ghost btn-sm p-1 shrink-0" title="Remove relation">
           <i data-lucide="x" class="w-3.5 h-3.5" style="color: var(--color-text-muted);"></i>
         </button>
       </div>`;
@@ -450,44 +450,44 @@
   async function saveRelation() {
     const targetId = document.getElementById('relation-target-id').value.trim();
     const relationType = document.getElementById('relation-type').value;
-    if (!targetId) { showToast('Buscá y seleccioná un ticket primero', 'warning'); return; }
+    if (!targetId) { showToast('Search and select a ticket first', 'warning'); return; }
     const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/', {
       method: 'POST',
       body: JSON.stringify({ targetTicketId: targetId, relationType }),
       headers: { 'Content-Type': 'application/json' },
     });
     if (resp && resp.status === 201) {
-      showToast('Relación agregada');
+      showToast('Relation added');
       toggleAddRelation();
       loadTicket();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      showToast(err.message || 'Error al agregar la relación', 'error');
+      showToast(err.message || 'Error adding relation', 'error');
     }
   }
 
   async function deleteRelation(relationId) {
-    if (!confirm('¿Eliminar esta relación?')) return;
+    if (!confirm('Remove this relation?')) return;
     const resp = await apiFetch('/tickets/' + TICKET_ID + '/relations/' + relationId, { method: 'DELETE' });
     if (resp && resp.status === 204) {
-      showToast('Relación eliminada');
+      showToast('Relation removed');
       loadTicket();
     } else {
-      showToast('Error al eliminar la relación', 'error');
+      showToast('Error removing relation', 'error');
     }
   }
 
   async function deleteAttachment(ticketId, attachmentId, filename) {
-    if (!confirm(`¿Eliminar adjunto "${filename}"?`)) return;
+    if (!confirm(`Delete attachment "${filename}"?`)) return;
     const resp = await apiFetch(`/tickets/${ticketId}/attachments/${attachmentId}`, {
       method: 'DELETE',
     });
     if (resp && resp.status === 204) {
-      showToast('Adjunto eliminado');
+      showToast('Attachment deleted');
       loadTicket();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      showToast(err.message || 'Error al eliminar adjunto', 'error');
+      showToast(err.message || 'Error deleting attachment', 'error');
     }
   }
 

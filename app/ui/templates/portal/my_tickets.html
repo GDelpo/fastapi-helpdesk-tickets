@@ -1,17 +1,17 @@
 {% extends "portal/shell.html" %}
-{% block title %}Mis Tickets — Mesa de Ayuda{% endblock %}
+{% block title %}My Tickets — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="max-w-4xl mx-auto space-y-4 py-8">
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="font-bold text-gray-800 text-xl leading-tight">Mis Tickets</h1>
-      <p class="text-xs text-gray-500 mt-0.5" id="tickets-subtitle">Cargando...</p>
+      <h1 class="font-bold text-gray-800 text-xl leading-tight">My Tickets</h1>
+      <p class="text-xs text-gray-500 mt-0.5" id="tickets-subtitle">Loading...</p>
     </div>
     <a href="{{ base }}/portal/new"
        class="btn btn-primary gap-1.5 shadow-sm no-underline">
-      <i class="fas fa-plus-circle"></i>Abrir Ticket
+      <i class="fas fa-plus-circle"></i>Open Ticket
     </a>
   </div>
 
@@ -53,11 +53,11 @@
     <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
       <i class="fas fa-inbox text-3xl text-gray-300"></i>
     </div>
-    <p class="text-base text-gray-600 font-semibold">No tenés tickets aún</p>
-    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Abrí uno cuando necesites coordinar una solicitud con un compañero.</p>
+    <p class="text-base text-gray-600 font-semibold">You don't have any tickets yet</p>
+    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Open one when you need to coordinate a request with a coworker.</p>
     <a href="{{ base }}/portal/new"
        class="mt-5 btn btn-primary gap-2 no-underline inline-flex">
-      <i class="fas fa-plus"></i>Abrir mi primer ticket
+      <i class="fas fa-plus"></i>Open my first ticket
     </a>
   </div>
 </div>
@@ -96,14 +96,14 @@
     const resp = await apiFetch('/my/tickets/?limit=200&include_closed=true');
     if (!resp || !resp.ok) {
       document.getElementById('tickets-container').innerHTML =
-        '<p class="text-sm text-red-500 text-center py-6">Error al cargar los tickets.</p>';
+        '<p class="text-sm text-red-500 text-center py-6">Error loading tickets.</p>';
       return;
     }
     const data = await resp.json();
     allTickets = data.data || [];
 
     const active = allTickets.filter(t => !ARCHIVED_STATUSES.includes(t.status));
-    const subtitle = `${active.length} ticket${active.length !== 1 ? 's' : ''} activo${active.length !== 1 ? 's' : ''}`;
+    const subtitle = `${active.length} active ticket${active.length !== 1 ? 's' : ''}`;
     document.getElementById('tickets-subtitle').textContent = subtitle;
 
     applyFilters();
@@ -200,7 +200,7 @@
     tickets.forEach(t => {
       const key = t.queueId;
       if (!groups[key]) {
-        groups[key] = { name: t.queueName || 'Sin categoría', active: [], archived: [] };
+        groups[key] = { name: t.queueName || 'Uncategorized', active: [], archived: [] };
         groupOrder.push(key);
       }
       if (ARCHIVED_STATUSES.includes(t.status)) {
@@ -242,7 +242,7 @@
              onclick="toggleArchived('${qid}')">
           <span class="flex items-center gap-2 text-xs text-gray-400">
             <i class="fas fa-archive text-gray-300" style="font-size:12px;"></i>
-            ${g.archived.length} ticket${g.archived.length !== 1 ? 's' : ''} archivado${g.archived.length !== 1 ? 's' : ''} / cerrado${g.archived.length !== 1 ? 's' : ''}
+            ${g.archived.length} archived / closed ticket${g.archived.length !== 1 ? 's' : ''}
           </span>
           <i id="${arrowId}" class="fas fa-chevron-down text-gray-300 transition-transform duration-200" style="font-size:12px;"></i>
         </div>
@@ -265,16 +265,16 @@
           </div>
 
           <div class="list-head">
-            <div class="col-span-2">Estado</div>
+            <div class="col-span-2">Status</div>
             <div class="col-span-2">Ticket</div>
-            <div class="col-span-5">Título</div>
-            <div class="col-span-2">Actualizado</div>
-            <div class="col-span-1 text-right">Resp.</div>
+            <div class="col-span-5">Title</div>
+            <div class="col-span-2">Updated</div>
+            <div class="col-span-1 text-right">Reply</div>
           </div>
 
           <!-- Active tickets -->
           <div>
-            ${activeRows || `<div class="px-3 py-4 text-xs text-gray-400 text-center">Sin tickets activos en esta categoría.</div>`}
+            ${activeRows || `<div class="px-3 py-4 text-xs text-gray-400 text-center">No active tickets in this category.</div>`}
           </div>
 
           <!-- Archived toggle + rows -->
@@ -294,12 +294,12 @@
 
     const pendingBadge = isPending
       ? `<span class="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md font-medium">
-           <i class="fas fa-exclamation-circle text-[10px]"></i>requiere tu respuesta
+           <i class="fas fa-exclamation-circle text-[10px]"></i>needs your reply
          </span>`
       : '';
     const watcherBadge = isWatcher
       ? `<span class="inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md font-medium">
-           <i class="fas fa-eye text-[10px]"></i>observador
+           <i class="fas fa-eye text-[10px]"></i>watcher
          </span>`
       : '';
     const extraBadges = pendingBadge + watcherBadge;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -181,7 +181,7 @@
 
   {% include "shared/_toast.html" %}
 
-  <!-- APP_META: inyectado por Jinja2 desde Python enums — cargar ANTES de constants.js -->
+  <!-- APP_META: injected by Jinja2 from Python enums — load BEFORE constants.js -->
   <script>
     const APP_META = {{ meta | tojson }};
   </script>

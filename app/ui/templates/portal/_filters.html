@@ -3,9 +3,9 @@
     <summary class="flex items-center cursor-pointer list-none">
       <span class="filter-title">
         <i class="fas fa-sliders-h text-blue-600"></i>
-        Filtros y ordenamiento
+        Filters and sorting
         <span id="filters-active-pill" class="filter-pill">
-          Filtros activos
+          Active filters
         </span>
       </span>
       <span class="ml-auto transition-transform group-open:rotate-180 text-gray-400">
@@ -18,34 +18,34 @@
           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <i class="fas fa-search text-gray-400"></i>
           </div>
-          <input type="text" id="filter-search" placeholder="Buscar por título, categoría o ID..."
+          <input type="text" id="filter-search" placeholder="Search by title, category or ID..."
                  class="input input-icon-left filter-control bg-white" />
         </div>
         <select id="filter-status" class="select filter-control">
-          <option value="">Todos los estados</option>
-          <option value="open">Abierto</option>
-          <option value="in_progress">En curso</option>
-          <option value="pending">Pendiente</option>
-          <option value="reopened">Reabierto</option>
-          <option value="resolved">Resuelto</option>
-          <option value="closed">Cerrado</option>
-          <option value="active">Solo activos</option>
-          <option value="archived">Solo archivados</option>
+          <option value="">All statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In progress</option>
+          <option value="pending">Pending</option>
+          <option value="reopened">Reopened</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+          <option value="active">Active only</option>
+          <option value="archived">Archived only</option>
         </select>
         <select id="sort-by" class="select filter-control" data-default-sort="updated_desc">
-          <option value="updated_desc">Ordenar: reciente</option>
-          <option value="status">Ordenar: estado</option>
-          <option value="updated_asc">Ordenar: más antiguo</option>
-          <option value="title_asc">Ordenar: título A-Z</option>
-          <option value="title_desc">Ordenar: título Z-A</option>
+          <option value="updated_desc">Sort: most recent</option>
+          <option value="status">Sort: status</option>
+          <option value="updated_asc">Sort: oldest</option>
+          <option value="title_asc">Sort: title A-Z</option>
+          <option value="title_desc">Sort: title Z-A</option>
         </select>
       </div>
       <div class="filter-actions mt-4">
         <button type="button" onclick="applyFilters()" class="btn btn-primary h-10 text-[13px]">
-          <i class="fas fa-search mr-2"></i>Aplicar
+          <i class="fas fa-search mr-2"></i>Apply
         </button>
         <button type="button" onclick="clearFilters()" class="btn btn-secondary h-10 text-[13px]">
-          <i class="fas fa-times mr-2"></i>Limpiar
+          <i class="fas fa-times mr-2"></i>Clear
         </button>
       </div>
     </div>

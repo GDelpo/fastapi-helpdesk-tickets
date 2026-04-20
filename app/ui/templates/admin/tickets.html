@@ -1,51 +1,51 @@
 {% extends "admin/base.html" %}
-{% block title %}Tickets — Mesa de Ayuda{% endblock %}
+{% block title %}Tickets — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="space-y-4">
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h2 class="text-xl font-bold">Todos los tickets</h2>
+      <h2 class="text-xl font-bold">All tickets</h2>
       <p class="text-sm mt-0.5" style="color: var(--color-text-muted);">
-        <span id="total-count">—</span> tickets en total
+        <span id="total-count">—</span> tickets in total
       </p>
     </div>
     <button onclick="openModal('modal-new-ticket')" class="btn btn-primary">
       <i data-lucide="plus" class="w-4 h-4"></i>
-      Nuevo Ticket
+      New Ticket
     </button>
   </div>
 
   <!-- Filters -->
   <div class="card p-4 flex flex-wrap gap-3">
     <select id="filter-queue" class="select" onchange="applyFilters()">
-      <option value="">Todas las categorías</option>
+      <option value="">All categories</option>
     </select>
     <select id="filter-status" class="select" onchange="applyFilters()">
-      <!-- Populated via JS: buildStatusOptions('Todos los estados') -->
+      <!-- Populated via JS: buildStatusOptions('All statuses') -->
     </select>
     <select id="filter-priority" class="select" onchange="applyFilters()">
-      <!-- Populated via JS: buildPriorityOptions('Todas las prioridades') -->
+      <!-- Populated via JS: buildPriorityOptions('All priorities') -->
     </select>
-    <input type="text" id="filter-search" class="input flex-1 min-w-40" placeholder="Buscar..." oninput="debounceSearch()" />
+    <input type="text" id="filter-search" class="input flex-1 min-w-40" placeholder="Search..." oninput="debounceSearch()" />
     <button id="btn-mine" onclick="toggleMine()" class="btn btn-ghost text-xs">
-      <i data-lucide="user" class="w-3.5 h-3.5"></i> Mis asignados
+      <i data-lucide="user" class="w-3.5 h-3.5"></i> My assigned
     </button>
   </div>
 
   <!-- Bulk action toolbar (hidden until ≥1 checkbox selected) -->
   <div id="bulk-bar" class="hidden items-center gap-3 mb-3 px-4 py-2.5 rounded-lg" style="background: var(--color-accent-soft); border: 1px solid var(--color-accent);">
-    <span id="bulk-count" class="text-sm font-medium" style="color: var(--color-accent-hover);">0 seleccionados</span>
+    <span id="bulk-count" class="text-sm font-medium" style="color: var(--color-accent-hover);">0 selected</span>
     <div class="flex items-center gap-2 ml-auto">
       <select id="bulk-status" class="select text-xs h-8 w-44">
-        <option value="">Cambiar estado…</option>
+        <option value="">Change status…</option>
       </select>
       <button onclick="applyBulk()" class="btn btn-primary btn-sm text-xs h-8 px-3">
-        <i data-lucide="check" class="w-3.5 h-3.5"></i>Aplicar
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>Apply
       </button>
       <button onclick="clearSelection()" class="btn btn-ghost btn-sm text-xs h-8 px-3">
-        Cancelar
+        Cancel
       </button>
     </div>
   </div>
@@ -60,13 +60,13 @@
                    onchange="toggleCheckAll(this.checked)" />
           </th>
           <th class="w-16">#</th>
-          <th>Título</th>
-          <th>Categoría</th>
-          <th>Estado</th>
-          <th>Prioridad</th>
-          <th>Solicitante</th>
-          <th>Asignado</th>
-          <th>Actualizado</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Status</th>
+          <th>Priority</th>
+          <th>Submitter</th>
+          <th>Assigned</th>
+          <th>Updated</th>
         </tr>
       </thead>
       <tbody id="tickets-tbody">
@@ -80,55 +80,55 @@
     <span id="pag-info">—</span>
     <div class="flex gap-2">
       <button id="btn-prev" onclick="changePage(-1)" class="btn btn-ghost text-xs" disabled>
-        <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+        <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous
       </button>
       <button id="btn-next" onclick="changePage(1)" class="btn btn-ghost text-xs" disabled>
-        Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
       </button>
     </div>
   </div>
 </div>
 
-<!-- Modal: Nuevo Ticket -->
+<!-- Modal: New Ticket -->
 <div id="modal-new-ticket" class="modal-overlay hidden">
   <div class="modal">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold">Nuevo Ticket</h3>
+      <h3 class="text-lg font-semibold">New Ticket</h3>
       <button onclick="closeModal('modal-new-ticket')" class="btn btn-ghost p-1">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
     <form id="form-new-ticket" class="space-y-3">
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Categoría *</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Category *</label>
         <select id="new-queue" class="select w-full" required></select>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Título *</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Title *</label>
         <input type="text" id="new-title" class="input" required />
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Descripción *</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Description *</label>
         <textarea id="new-description" class="textarea" rows="4" required></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Prioridad</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Priority</label>
           <select id="new-priority" class="select w-full">
             <!-- Populated via JS: buildPriorityOptions() -->
           </select>
         </div>
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Email solicitante</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Submitter email</label>
           <input type="email" id="new-email" class="input" placeholder="auto" />
         </div>
       </div>
       <div id="new-error" class="hidden text-sm rounded-lg px-3 py-2" style="background: var(--color-error-soft); color: var(--color-error);"></div>
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeModal('modal-new-ticket')" class="btn btn-ghost">Cancelar</button>
+        <button type="button" onclick="closeModal('modal-new-ticket')" class="btn btn-ghost">Cancel</button>
         <button type="submit" class="btn btn-primary">
           <i data-lucide="send" class="w-4 h-4"></i>
-          Crear Ticket
+          Create Ticket
         </button>
       </div>
     </form>
@@ -144,10 +144,10 @@
   let showMine = false;
 
   // Populate selects from APP_META via constants.js helpers
-  document.getElementById('filter-status').innerHTML = buildStatusOptions('Todos los estados');
-  document.getElementById('filter-priority').innerHTML = buildPriorityOptions('Todas las prioridades');
+  document.getElementById('filter-status').innerHTML = buildStatusOptions('All statuses');
+  document.getElementById('filter-priority').innerHTML = buildPriorityOptions('All priorities');
   document.getElementById('new-priority').innerHTML = buildPriorityOptions('Normal');
-  document.getElementById('bulk-status').innerHTML = buildStatusOptions('Cambiar estado…');
+  document.getElementById('bulk-status').innerHTML = buildStatusOptions('Change status…');
 
   function toggleMine() {
     showMine = !showMine;
@@ -197,7 +197,7 @@
   function renderTickets(tickets) {
     const tbody = document.getElementById('tickets-tbody');
     if (!tickets.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8" style="color: var(--color-text-muted);">Sin tickets</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8" style="color: var(--color-text-muted);">No tickets</td></tr>';
       return;
     }
     tbody.innerHTML = tickets.map(t => `
@@ -221,7 +221,7 @@
 
   function renderPagination(meta) {
     document.getElementById('pag-info').textContent =
-      `${meta.page} de ${meta.totalPages} páginas (${meta.total} tickets)`;
+      `${meta.page} of ${meta.totalPages} pages (${meta.total} tickets)`;
     document.getElementById('btn-prev').disabled = !meta.hasPrevious;
     document.getElementById('btn-next').disabled = !meta.hasNext;
   }
@@ -253,11 +253,11 @@
     if (resp && resp.status === 201) {
       const ticket = await resp.json();
       closeModal('modal-new-ticket');
-      showToast('Ticket creado', 'success');
+      showToast('Ticket created', 'success');
       window.location.href = BASE + '/dashboard/tickets/' + ticket.id;
     } else {
       const err = await resp?.json().catch(() => ({}));
-      errEl.textContent = err.message || 'Error al crear el ticket';
+      errEl.textContent = err.message || 'Error creating the ticket';
       errEl.classList.remove('hidden');
     }
   });
@@ -291,7 +291,7 @@
     if (selectedIds.size > 0) {
       bar.classList.remove('hidden');
       bar.classList.add('flex');
-      document.getElementById('bulk-count').textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+      document.getElementById('bulk-count').textContent = `${selectedIds.size} selected`;
     } else {
       bar.classList.add('hidden');
       bar.classList.remove('flex');
@@ -317,14 +317,14 @@
     });
     if (resp && resp.ok) {
       const { updated } = await resp.json();
-      showToast(`${updated} ticket${updated !== 1 ? 's' : ''} actualizados`, 'success');
+      showToast(`${updated} ticket${updated !== 1 ? 's' : ''} updated`, 'success');
       selectedIds.clear();
       document.getElementById('check-all').checked = false;
       document.getElementById('check-all').indeterminate = false;
       toggleBulkBar();
       loadTickets();
     } else {
-      showToast('Error al actualizar tickets', 'error');
+      showToast('Error updating tickets', 'error');
     }
   }
 

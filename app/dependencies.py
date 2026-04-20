@@ -55,7 +55,7 @@ async def get_current_user(
                 mail=data.get("mail"),
                 role=data["role"],
             )
-        raise AuthenticationError("Token inválido o expirado")
+        raise AuthenticationError("Invalid or expired token")
     except httpx.ConnectTimeout:
         raise ExternalServiceError("Identity", "Connection timeout")
     except httpx.ConnectError:
@@ -72,7 +72,7 @@ async def admin_required(
 ) -> TokenData:
     """Require admin or service role."""
     if current_user.role not in ("admin", "service"):
-        raise AuthorizationError("Se requieren permisos de administrador")
+        raise AuthorizationError("Administrator permissions required")
     return current_user
 
 
@@ -135,12 +135,12 @@ def get_pagination_params(
 # =============================================================================
 
 def get_ticket_filters(
-    queue_id: Annotated[int | None, Query(description="Filtrar por categoría")] = None,
+    queue_id: Annotated[int | None, Query(description="Filter by category")] = None,
     status: Annotated[str | None, Query(description="open|in_progress|pending|reopened|resolved|closed")] = None,
-    priority: Annotated[int | None, Query(ge=1, le=5, description="1=Crítica … 5=Muy baja")] = None,
-    assigned_to: Annotated[str | None, Query(description="Username del agente asignado")] = None,
-    search: Annotated[str | None, Query(description="Búsqueda en título o por UUID prefix")] = None,
-    include_closed: Annotated[bool, Query(description="Incluir tickets cerrados")] = False,
+    priority: Annotated[int | None, Query(ge=1, le=5, description="1=Critical … 5=Very low")] = None,
+    assigned_to: Annotated[str | None, Query(description="Username of the assigned agent")] = None,
+    search: Annotated[str | None, Query(description="Search in title or by UUID prefix")] = None,
+    include_closed: Annotated[bool, Query(description="Include closed tickets")] = False,
 ) -> TicketFilterParams:
     return TicketFilterParams(
         queue_id=queue_id,

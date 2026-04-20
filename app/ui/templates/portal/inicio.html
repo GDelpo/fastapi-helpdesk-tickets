@@ -1,33 +1,33 @@
 {% extends "portal/shell.html" %}
-{% block title %}Inicio — Mesa de Ayuda{% endblock %}
+{% block title %}Home — Helpdesk{% endblock %}
 
 {% block page_content %}
-<!-- Hero Section a ancho completo -->
+<!-- Full-width hero section -->
 <div class="relative bg-gradient-to-r from-blue-700 to-blue-600 overflow-hidden w-full">
   <div class="w-full">
     <div class="relative z-10 pb-8 sm:pb-16 md:pb-20 lg:pb-28 xl:pb-32">
       <div class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
         <div class="sm:text-center lg:text-left">
           <h1 class="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
-            <span class="block">Sistema de gestión de</span>
-            <span class="block text-blue-200">Solicitudes y Seguimiento Interno</span>
+            <span class="block">Internal request</span>
+            <span class="block text-blue-200">and tracking system</span>
           </h1>
           <p class="mt-3 text-base text-blue-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-            Plataforma interna para crear, seguir y resolver solicitudes entre pares de toda la compañía.
+            Internal platform to create, follow and resolve peer-to-peer requests across the company.
           </p>
           <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
             <div class="rounded-md shadow">
               <a href="{{ base }}/portal/new"
                  class="btn btn-primary btn-lg">
                 <i class="fas fa-plus-circle mr-2"></i>
-                Nuevo Ticket
+                New Ticket
               </a>
             </div>
             <div class="mt-3 sm:mt-0 sm:ml-3">
               <a href="{{ base }}/portal/tickets/"
                  class="btn btn-secondary btn-lg">
                 <i class="fas fa-list mr-2"></i>
-                Ver Tickets
+                View Tickets
               </a>
             </div>
           </div>
@@ -45,7 +45,7 @@
       <i class="fas fa-folder-open text-2xl text-blue-600"></i>
     </div>
     <div id="stat-open" class="text-3xl font-extrabold text-blue-700">—</div>
-    <div class="text-xs text-gray-500 mt-1">tickets activos</div>
+    <div class="text-xs text-gray-500 mt-1">active tickets</div>
   </a>
 
   <a href="{{ base }}/portal/tickets/" class="stat-card bg-white border border-orange-200 rounded-xl p-5 shadow-sm text-center no-underline block">
@@ -53,7 +53,7 @@
       <i class="fas fa-clock text-2xl text-orange-500"></i>
     </div>
     <div id="stat-pending" class="text-3xl font-extrabold text-orange-600">—</div>
-    <div class="text-xs text-gray-500 mt-1">esperan tu respuesta</div>
+    <div class="text-xs text-gray-500 mt-1">waiting for your reply</div>
   </a>
 
   <a href="{{ base }}/portal/tickets/" class="stat-card bg-white border border-gray-200 rounded-xl p-5 shadow-sm text-center no-underline block">
@@ -61,15 +61,15 @@
       <i class="fas fa-check-double text-2xl text-green-600"></i>
     </div>
     <div id="stat-resolved" class="text-3xl font-extrabold text-green-600">—</div>
-    <div class="text-xs text-gray-500 mt-1">resueltos</div>
+    <div class="text-xs text-gray-500 mt-1">resolved</div>
   </a>
 </div>
 
-<!-- ¿Cómo funciona? -->
+<!-- How it works -->
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden" data-animate-fade>
   <div class="px-5 py-3 bg-gradient-to-r from-blue-50 to-transparent border-b border-blue-100">
     <h2 class="text-sm font-bold text-blue-700 flex items-center gap-1.5">
-      <i class="fas fa-info-circle"></i>¿Cómo funciona?
+      <i class="fas fa-info-circle"></i>How it works
     </h2>
   </div>
   <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -78,9 +78,9 @@
         <div class="w-9 h-9 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">1</div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-            <i class="fas fa-edit text-xs text-blue-500"></i>Abrís un ticket
+            <i class="fas fa-edit text-xs text-blue-500"></i>Open a ticket
           </h3>
-          <p class="text-xs text-gray-500 mt-1">Describís la solicitud y asignás un responsable o lo mencionás con @.</p>
+          <p class="text-xs text-gray-500 mt-1">Describe the request and assign an owner or mention them with @.</p>
         </div>
       </div>
     </div>
@@ -89,9 +89,9 @@
         <div class="w-9 h-9 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">2</div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-            <i class="fas fa-user-check text-xs text-blue-500"></i>El responsable responde
+            <i class="fas fa-user-check text-xs text-blue-500"></i>The owner replies
           </h3>
-          <p class="text-xs text-gray-500 mt-1">Recibís notificaciones por email con cada actualización.</p>
+          <p class="text-xs text-gray-500 mt-1">You get email notifications with every update.</p>
         </div>
       </div>
     </div>
@@ -100,9 +100,9 @@
         <div class="w-9 h-9 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">3</div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-            <i class="fas fa-comment text-xs text-blue-500"></i>Dialogás y adjuntás
+            <i class="fas fa-comment text-xs text-blue-500"></i>Discuss and attach
           </h3>
-          <p class="text-xs text-gray-500 mt-1">Respondés, mencionás compañeros y adjuntás archivos.</p>
+          <p class="text-xs text-gray-500 mt-1">Reply, mention coworkers and attach files.</p>
         </div>
       </div>
     </div>
@@ -111,23 +111,23 @@
         <div class="w-9 h-9 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">4</div>
         <div>
           <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-            <i class="fas fa-check-circle text-xs text-blue-500"></i>Confirmás la solución
+            <i class="fas fa-check-circle text-xs text-blue-500"></i>Confirm the solution
           </h3>
-          <p class="text-xs text-gray-500 mt-1">Marcás el ticket como Resuelto o lo reabrís si el problema persiste.</p>
+          <p class="text-xs text-gray-500 mt-1">Mark the ticket as Resolved or reopen it if the issue persists.</p>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Soporte urgente -->
+<!-- Urgent support -->
 <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 flex items-center gap-4 shadow-sm" data-animate-fade>
   <div class="w-10 h-10 flex-shrink-0 bg-blue-600 rounded-lg flex items-center justify-center">
     <i class="fas fa-headphones text-xl text-white"></i>
   </div>
   <div>
-    <div class="text-sm font-bold text-blue-900">¿Necesitás ayuda urgente?</div>
-    <div class="text-xs text-blue-700 mt-0.5">Escribinos a <a href="mailto:{{ support_email }}" class="font-semibold hover:underline">{{ support_email }}</a> o comunicate con el área de Sistemas directamente.</div>
+    <div class="text-sm font-bold text-blue-900">Need urgent help?</div>
+    <div class="text-xs text-blue-700 mt-0.5">Reach us at <a href="mailto:{{ support_email }}" class="font-semibold hover:underline">{{ support_email }}</a> or contact the IT area directly.</div>
   </div>
 </div>
 </div>

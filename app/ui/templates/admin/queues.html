@@ -1,13 +1,13 @@
 {% extends "admin/base.html" %}
-{% block title %}Categorías — Mesa de Ayuda{% endblock %}
+{% block title %}Categories — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="space-y-4">
   <div class="flex items-center justify-between">
-    <h2 class="text-xl font-bold">Categorías</h2>
+    <h2 class="text-xl font-bold">Categories</h2>
     <button onclick="openQueueModal(null)" class="btn btn-primary" data-admin-only>
       <i data-lucide="plus" class="w-4 h-4"></i>
-      Nueva Categoría
+      New Category
     </button>
   </div>
 
@@ -19,18 +19,18 @@
   </div>
 </div>
 
-<!-- Modal: Crear / Editar Categoría -->
+<!-- Modal: Create / Edit Category -->
 <div id="modal-queue" class="modal-overlay hidden">
   <div class="modal max-w-xl w-full">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold" id="modal-queue-title">Nueva Categoría</h3>
+      <h3 class="text-lg font-semibold" id="modal-queue-title">New Category</h3>
       <button onclick="closeModal('modal-queue')" class="btn btn-ghost p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
     <form id="form-queue" class="space-y-3 mt-2">
       <input type="hidden" id="queue-id" value="" />
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Nombre *</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Name *</label>
           <input type="text" id="queue-name" class="input" required />
         </div>
         <div>
@@ -39,28 +39,28 @@
         </div>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Categoría padre</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Parent category</label>
         <select id="queue-parent" class="select w-full">
-          <option value="">— Sin padre (categoría raíz) —</option>
+          <option value="">— No parent (root category) —</option>
         </select>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Descripción</label>
+        <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Description</label>
         <textarea id="queue-desc" class="textarea" rows="2"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Email de notificación</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Notification email</label>
           <input type="email" id="queue-email" class="input" />
         </div>
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Agente por defecto</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Default agent</label>
           <input type="text" id="queue-agent" class="input" placeholder="username" />
         </div>
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Icono (Lucide)</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Icon (Lucide)</label>
           <input type="text" id="queue-icon" class="input" placeholder="inbox" />
         </div>
         <div>
@@ -68,14 +68,14 @@
           <input type="color" id="queue-color" class="input h-10 p-1 cursor-pointer" value="#3b82f6" />
         </div>
         <div>
-          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Orden</label>
+          <label class="block text-xs uppercase tracking-wider mb-1" style="color: var(--color-text-muted);">Order</label>
           <input type="number" id="queue-order" class="input" value="0" min="0" />
         </div>
       </div>
       <div id="queue-error" class="hidden text-sm rounded-lg px-3 py-2" style="background: var(--color-error-soft); color: var(--color-error);"></div>
       <div class="flex justify-end gap-2 pt-2">
-        <button type="button" onclick="closeModal('modal-queue')" class="btn btn-ghost">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" onclick="closeModal('modal-queue')" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>
   </div>
@@ -96,7 +96,7 @@
   function renderTree(queues) {
     const container = document.getElementById('queues-tree');
     if (!queues.length) {
-      container.innerHTML = '<div class="py-10 text-center text-sm" style="color: var(--color-text-muted);">Sin categorías</div>';
+      container.innerHTML = '<div class="py-10 text-center text-sm" style="color: var(--color-text-muted);">No categories</div>';
       return;
     }
 
@@ -114,19 +114,19 @@
     function rowActions(q) {
       if (!q.isActive) {
         return `
-          <button onclick="toggleQueue(${q.id}, true)" class="btn btn-ghost text-xs" title="Reactivar">
-            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Reactivar
+          <button onclick="toggleQueue(${q.id}, true)" class="btn btn-ghost text-xs" title="Reactivate">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Reactivate
           </button>
-          ${(q.ticketCount || 0) === 0 ? `<button onclick="deleteQueue(${q.id})" class="btn btn-danger text-xs" title="Eliminar">
+          ${(q.ticketCount || 0) === 0 ? `<button onclick="deleteQueue(${q.id})" class="btn btn-danger text-xs" title="Delete">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>` : ''}
         `;
       }
       return `
-        <button onclick="openQueueModal(${q.id})" class="btn btn-ghost text-xs" title="Editar">
+        <button onclick="openQueueModal(${q.id})" class="btn btn-ghost text-xs" title="Edit">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
-        <button onclick="toggleQueue(${q.id}, false)" class="btn btn-ghost text-xs" title="Desactivar">
+        <button onclick="toggleQueue(${q.id}, false)" class="btn btn-ghost text-xs" title="Deactivate">
           <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
         </button>
       `;
@@ -147,7 +147,7 @@
             </div>
           </div>
           <div class="text-xs flex-shrink-0" style="color: var(--color-text-muted);">${q.ticketCount ?? 0} tickets</div>
-          <div class="flex-shrink-0">${q.isActive ? '<span class="badge badge-open text-[10px]">Activa</span>' : '<span class="badge badge-closed text-[10px]">Inactiva</span>'}</div>
+          <div class="flex-shrink-0">${q.isActive ? '<span class="badge badge-open text-[10px]">Active</span>' : '<span class="badge badge-closed text-[10px]">Inactive</span>'}</div>
           <div class="flex gap-1 flex-shrink-0" data-admin-only>${rowActions(q)}</div>
         </div>`;
     }
@@ -181,11 +181,11 @@
   function openQueueModal(id) {
     const errEl = document.getElementById('queue-error');
     errEl.classList.add('hidden');
-    document.getElementById('modal-queue-title').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
+    document.getElementById('modal-queue-title').textContent = id ? 'Edit Category' : 'New Category';
     document.getElementById('queue-id').value = id || '';
 
     const parentSelect = document.getElementById('queue-parent');
-    parentSelect.innerHTML = '<option value="">— Sin padre (categoría raíz) —</option>';
+    parentSelect.innerHTML = '<option value="">— No parent (root category) —</option>';
     for (const q of allQueues) {
       if (!q.parentId && q.isActive && q.id !== id) {
         const opt = document.createElement('option');
@@ -255,11 +255,11 @@
 
     if (resp && (resp.status === 200 || resp.status === 201)) {
       closeModal('modal-queue');
-      showToast(id ? 'Categoría actualizada' : 'Categoría creada');
+      showToast(id ? 'Category updated' : 'Category created');
       loadQueues();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      errEl.textContent = err.message || 'Error al guardar';
+      errEl.textContent = err.message || 'Error saving';
       errEl.classList.remove('hidden');
     }
   });
@@ -271,22 +271,22 @@
       headers: { 'Content-Type': 'application/json' },
     });
     if (resp && resp.ok) {
-      showToast(isActive ? 'Categoría reactivada' : 'Categoría desactivada');
+      showToast(isActive ? 'Category reactivated' : 'Category deactivated');
       loadQueues();
     } else {
-      showToast('Error al actualizar', 'error');
+      showToast('Error updating', 'error');
     }
   }
 
   async function deleteQueue(id) {
-    if (!confirm('¿Eliminar esta categoría permanentemente?')) return;
+    if (!confirm('Permanently delete this category?')) return;
     const resp = await apiFetch('/queues/' + id, { method: 'DELETE' });
     if (resp && (resp.status === 200 || resp.status === 204)) {
-      showToast('Categoría eliminada');
+      showToast('Category deleted');
       loadQueues();
     } else {
       const err = await resp?.json().catch(() => ({}));
-      showToast(err.message || 'Error al eliminar', 'error');
+      showToast(err.message || 'Error deleting', 'error');
     }
   }
 

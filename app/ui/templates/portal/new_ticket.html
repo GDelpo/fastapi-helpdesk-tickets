@@ -1,66 +1,66 @@
 {% extends "portal/shell.html" %}
-{% block title %}Abrir Ticket — Mesa de Ayuda{% endblock %}
+{% block title %}Open Ticket — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="max-w-2xl mx-auto space-y-6 py-8">
   <!-- Breadcrumb -->
   <div class="flex items-center gap-2 text-sm mb-5">
     <a href="{{ base }}/portal/tickets/" class="text-gray-400 hover:text-blue-600 transition-colors no-underline flex items-center gap-1">
-      <i class="fas fa-arrow-left"></i>Mis Tickets
+      <i class="fas fa-arrow-left"></i>My Tickets
     </a>
     <span class="text-gray-300">/</span>
-    <span class="text-sm font-semibold text-gray-700">Abrir Ticket</span>
+    <span class="text-sm font-semibold text-gray-700">Open Ticket</span>
   </div>
 
   <div class="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
     <div class="bg-gradient-to-r from-blue-700 to-blue-500 px-6 py-5">
       <h2 class="text-white font-bold text-lg flex items-center gap-2">
-        <i class="fas fa-plus-circle text-lg"></i>Abrir nuevo ticket
+        <i class="fas fa-plus-circle text-lg"></i>Open new ticket
       </h2>
-      <p class="text-blue-200 text-sm mt-1">Describí lo que necesitás y el responsable asignado lo gestiona.</p>
+      <p class="text-blue-200 text-sm mt-1">Describe what you need and the assigned owner will handle it.</p>
     </div>
 
     <div class="bg-white p-6 space-y-5">
-      <!-- Categoría -->
+      <!-- Category -->
       <div>
-        <label for="new-queue" class="field-label">Categoría <span class="text-red-500">*</span></label>
+        <label for="new-queue" class="field-label">Category <span class="text-red-500">*</span></label>
         <select id="new-queue" class="select" required>
-          <option value="">Seleccioná el área...</option>
+          <option value="">Select the area...</option>
         </select>
       </div>
 
-      <!-- Título -->
+      <!-- Title -->
       <div>
-        <label for="new-title" class="field-label">Título <span class="text-red-500">*</span>
-          <span class="text-xs text-gray-400 ml-1">(máx. 200 caracteres)</span>
+        <label for="new-title" class="field-label">Title <span class="text-red-500">*</span>
+          <span class="text-xs text-gray-400 ml-1">(max. 200 characters)</span>
         </label>
         <input type="text" id="new-title" class="input" required maxlength="200"
-               placeholder="Resumí brevemente tu solicitud..."
+               placeholder="Briefly summarize your request..."
                oninput="validateTitle()" />
         <div id="title-error" class="hidden text-xs text-red-500 mt-1"></div>
       </div>
 
-      <!-- Asignado -->
+      <!-- Assignee -->
       <div class="relative">
         <label for="new-assigned" class="field-label">
-          Asignado <span class="text-red-500">*</span>
+          Assigned to <span class="text-red-500">*</span>
         </label>
-        <p class="text-xs text-gray-400 mb-1.5">Podés buscar por usuario o correo.</p>
-        <!-- Chip: visible cuando hay un usuario seleccionado -->
+        <p class="text-xs text-gray-400 mb-1.5">You can search by username or email.</p>
+        <!-- Chip: visible when a user is selected -->
         <div id="assigned-chip" class="hidden items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 rounded-md">
           <div id="assigned-chip-avatar"
                class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0"></div>
           <span id="assigned-chip-name" class="text-sm font-medium text-gray-800 flex-1 truncate"></span>
           <button type="button" id="assigned-chip-clear"
                   class="text-gray-400 hover:text-red-500 transition-colors ml-1 shrink-0 leading-none"
-                  aria-label="Quitar responsable">×</button>
+                  aria-label="Remove assignee">×</button>
         </div>
-        <!-- Input: visible cuando no hay selección -->
+        <!-- Input: visible when nothing is selected -->
         <div id="assigned-input-wrap" class="relative">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
             <i class="fas fa-user text-xs"></i>
           </span>
-          <input type="text" id="new-assigned" class="input input-icon-left" placeholder="Buscar por usuario o correo..."
+          <input type="text" id="new-assigned" class="input input-icon-left" placeholder="Search by username or email..."
                  autocomplete="off" />
         </div>
         <div id="assigned-error" class="hidden text-xs text-red-500 mt-1"></div>
@@ -69,61 +69,61 @@
         <input type="hidden" id="new-assigned-id" />
       </div>
 
-      <!-- Descripción -->
+      <!-- Description -->
       <div>
-        <label for="new-description" class="field-label">Descripción <span class="text-red-500">*</span>
-          <span class="text-xs text-gray-400 ml-1">(mín. 10 caracteres · usá @nombre para mencionar a alguien)</span>
+        <label for="new-description" class="field-label">Description <span class="text-red-500">*</span>
+          <span class="text-xs text-gray-400 ml-1">(min. 10 characters · use @name to mention someone)</span>
         </label>
         <textarea id="new-description" class="textarea" rows="5" required
-                  placeholder="Describí el problema o solicitud con el mayor detalle posible. Usá @nombre para notificar a alguien."
+                  placeholder="Describe the problem or request with as much detail as possible. Use @name to notify someone."
                   oninput="validateDescription()"></textarea>
         <div id="desc-error" class="hidden text-xs text-red-500 mt-1"></div>
       </div>
 
-      <!-- Adjuntos -->
+      <!-- Attachments -->
       <div>
         <label class="field-label">
-          Adjuntos <span class="text-gray-400 font-normal text-xs">(opcional)</span>
+          Attachments <span class="text-gray-400 font-normal text-xs">(optional)</span>
         </label>
         <div id="file-preview" class="mb-2 flex flex-wrap gap-2"></div>
-        <p class="text-xs text-gray-400 mb-2">PDF, PNG, JPG, DOCX, XLSX y más. Máximo 10 MB por archivo.</p>
+        <p class="text-xs text-gray-400 mb-2">PDF, PNG, JPG, DOCX, XLSX and more. Max. 10 MB per file.</p>
         <div id="drop-zone"
              class="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center bg-gray-50 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
              onclick="document.getElementById('new-files').click()">
           <i class="fas fa-cloud-upload-alt text-2xl text-gray-300 block mx-auto mb-1"></i>
-          <p class="text-xs text-gray-500">Arrastrá archivos acá o</p>
+          <p class="text-xs text-gray-500">Drag files here or</p>
           <span class="mt-1 text-xs text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-            seleccionar archivos
+            select files
           </span>
           <input id="new-files" type="file" class="hidden" multiple />
         </div>
       </div>
 
-      <!-- Prioridad -->
+      <!-- Priority -->
       <div>
         <label for="new-priority" class="field-label">
-          Prioridad <span class="text-xs text-gray-400 ml-1">(impacto de la solicitud)</span>
+          Priority <span class="text-xs text-gray-400 ml-1">(impact of the request)</span>
         </label>
         <select id="new-priority" class="select"></select>
       </div>
 
-      <!-- Ticket padre (opcional) -->
+      <!-- Parent ticket (optional) -->
       <div class="relative">
         <label for="new-parent" class="field-label">
-          Ticket relacionado <span class="text-xs text-gray-400 ml-1">(opcional)</span>
+          Related ticket <span class="text-xs text-gray-400 ml-1">(optional)</span>
         </label>
         <input type="text" id="new-parent" class="input"
-               placeholder="Buscá por ID o título de ticket relacionado..."
+               placeholder="Search by ID or title of related ticket..."
                autocomplete="off" />
         <div id="parent-suggestions"
              class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
         <input type="hidden" id="new-parent-id" />
       </div>
 
-      <!-- Fecha límite -->
+      <!-- Due date -->
       <div>
         <label for="new-due-date" class="field-label">
-          Fecha límite <span class="text-gray-400 font-normal text-xs">(opcional)</span>
+          Due date <span class="text-gray-400 font-normal text-xs">(optional)</span>
         </label>
         <input type="date" id="new-due-date" class="input" min="{{ today }}" />
       </div>
@@ -131,7 +131,7 @@
       <!-- Info box -->
       <div class="bg-blue-50 border border-blue-100 rounded-lg p-3.5 flex items-start gap-2.5">
         <i class="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0"></i>
-        <p class="text-xs text-blue-700 leading-relaxed">Si no encontrás la categoría adecuada, seleccioná <strong>Otros</strong>. El asignado lo derivará según el contenido.</p>
+        <p class="text-xs text-blue-700 leading-relaxed">If you can't find the right category, pick <strong>Other</strong>. The assignee will route it based on the content.</p>
       </div>
 
       <!-- Error display -->
@@ -143,11 +143,11 @@
       <div class="flex gap-3 pt-2">
         <a href="{{ base }}/portal/tickets/"
            class="btn btn-secondary flex-1 justify-center no-underline">
-          Cancelar
+          Cancel
         </a>
         <button id="submit-btn" onclick="submitTicket()"
                 class="btn btn-primary flex-1">
-          <i class="fas fa-paper-plane"></i>Enviar solicitud
+          <i class="fas fa-paper-plane"></i>Submit request
         </button>
       </div>
     </div>
@@ -157,7 +157,7 @@
 
 {% block page_scripts %}
 <script>
-  // Inicializar módulos JS
+  // Initialize JS modules
   const _attachments = initAttachments({
     inputId:    'new-files',
     previewId:  'file-preview',
@@ -170,7 +170,7 @@
   const _preQueueId = new URLSearchParams(window.location.search).get('queue_id');
   initTicketForm({ base: BASE, apiBase: API_BASE, attachments: _attachments, preQueueId: _preQueueId ? parseInt(_preQueueId) : null });
 
-  // Prioridad options desde APP_META, default Normal (3)
+  // Priority options from APP_META, default Normal (3)
   document.getElementById('new-priority').innerHTML = buildPriorityOptions('').replace(
     '<option value="3">', '<option value="3" selected>'
   );

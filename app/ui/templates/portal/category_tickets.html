@@ -1,25 +1,25 @@
 {% extends "portal/shell.html" %}
-{% block title %}Categoría — Mesa de Ayuda{% endblock %}
+{% block title %}Category — Helpdesk{% endblock %}
 
 {% block page_content %}
 <div class="max-w-4xl mx-auto space-y-4 py-8">
   <div class="flex items-center gap-2 text-sm text-gray-500">
     <a href="{{ base }}/portal/categories/" class="inline-flex items-center gap-1 hover:text-blue-600 transition-colors no-underline">
-      <i class="fas fa-arrow-left"></i>Categorías
+      <i class="fas fa-arrow-left"></i>Categories
     </a>
     <span class="text-gray-300">/</span>
-    <span class="font-medium text-gray-700">Tickets de categoría</span>
+    <span class="font-medium text-gray-700">Category tickets</span>
   </div>
 
   <div class="flex items-start justify-between gap-4">
     <div>
-      <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Categoría</div>
-      <h1 id="cat-title" class="font-bold text-gray-800 text-xl leading-tight tracking-tight">Cargando...</h1>
-      <p id="cat-subtitle" class="text-xs text-gray-500 mt-0.5">Cargando tickets...</p>
+      <div class="text-xs uppercase tracking-wider text-gray-400 mb-1">Category</div>
+      <h1 id="cat-title" class="font-bold text-gray-800 text-xl leading-tight tracking-tight">Loading...</h1>
+      <p id="cat-subtitle" class="text-xs text-gray-500 mt-0.5">Loading tickets...</p>
     </div>
     <a id="new-ticket-link" href="{{ base }}/portal/new"
        class="btn btn-primary gap-1.5 shadow-sm no-underline whitespace-nowrap">
-      <i class="fas fa-plus-circle"></i>Abrir Ticket
+      <i class="fas fa-plus-circle"></i>Open Ticket
     </a>
   </div>
 
@@ -38,8 +38,8 @@
     <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
       <i class="fas fa-inbox text-3xl text-gray-300"></i>
     </div>
-    <p class="text-base text-gray-600 font-semibold">No hay tickets para este filtro</p>
-    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Probá cambiando estado, búsqueda u ordenamiento.</p>
+    <p class="text-base text-gray-600 font-semibold">No tickets for this filter</p>
+    <p class="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">Try changing status, search or sort order.</p>
   </div>
 </div>
 {% endblock %}
@@ -55,12 +55,12 @@
   async function loadCategory() {
     const resp = await apiFetch('/queues/' + QUEUE_ID);
     if (!resp || !resp.ok) {
-      document.getElementById('cat-title').textContent = 'Categoría no disponible';
-      document.getElementById('cat-subtitle').textContent = 'No se pudo cargar la categoría.';
+      document.getElementById('cat-title').textContent = 'Category not available';
+      document.getElementById('cat-subtitle').textContent = 'Could not load category.';
       return;
     }
     currentQueue = await resp.json();
-    document.getElementById('cat-title').textContent = currentQueue.name || 'Categoría';
+    document.getElementById('cat-title').textContent = currentQueue.name || 'Category';
     document.getElementById('new-ticket-link').href = `${BASE}/portal/new?queue_id=${QUEUE_ID}`;
   }
 
@@ -68,7 +68,7 @@
     const resp = await apiFetch(`/my/tickets/?queue_id=${QUEUE_ID}&include_closed=true&limit=200`);
     if (!resp || !resp.ok) {
       document.getElementById('tickets-container').innerHTML =
-        '<p class="text-sm text-red-500 text-center py-6">Error al cargar tickets de la categoría.</p>';
+        '<p class="text-sm text-red-500 text-center py-6">Error loading tickets for this category.</p>';
       return;
     }
     const data = await resp.json();
@@ -81,7 +81,7 @@
     const activeCount = source.filter(t => !ARCHIVED_STATUSES.includes(t.status)).length;
     const archivedCount = source.filter(t => ARCHIVED_STATUSES.includes(t.status)).length;
     document.getElementById('cat-subtitle').textContent =
-      `${source.length} ticket${source.length !== 1 ? 's' : ''} total · ${activeCount} activo${activeCount !== 1 ? 's' : ''} · ${archivedCount} archivado${archivedCount !== 1 ? 's' : ''}`;
+      `${source.length} ticket${source.length !== 1 ? 's' : ''} total · ${activeCount} active · ${archivedCount} archived`;
   }
 
   function updateFilterPill() {
@@ -177,19 +177,19 @@
         <div class="section-header">
           <div class="flex items-center gap-2">
             <i class="fas fa-ticket-alt text-blue-500"></i>
-            <span class="section-label">Activos</span>
+            <span class="section-label">Active</span>
           </div>
           <span class="text-xs text-gray-400 font-medium">${activeItems.length}</span>
         </div>
         <div class="list-head">
-          <div class="col-span-2">Estado</div>
+          <div class="col-span-2">Status</div>
           <div class="col-span-2">Ticket</div>
-          <div class="col-span-5">Título</div>
-          <div class="col-span-2">Actualizado</div>
-          <div class="col-span-1 text-right">Resp.</div>
+          <div class="col-span-5">Title</div>
+          <div class="col-span-2">Updated</div>
+          <div class="col-span-1 text-right">Reply</div>
         </div>
         <div>
-          ${activeItems.length ? activeItems.map(t => renderTicketRow(t)).join('') : '<div class="px-3 py-4 text-xs text-gray-400 text-center">Sin tickets activos.</div>'}
+          ${activeItems.length ? activeItems.map(t => renderTicketRow(t)).join('') : '<div class="px-3 py-4 text-xs text-gray-400 text-center">No active tickets.</div>'}
         </div>
       </div>`;
 
@@ -198,16 +198,16 @@
         <div class="section-header">
           <div class="flex items-center gap-2">
             <i class="fas fa-archive text-gray-400"></i>
-            <span class="section-label">Archivados</span>
+            <span class="section-label">Archived</span>
           </div>
           <span class="text-xs text-gray-400 font-medium">${archivedItems.length}</span>
         </div>
         <div class="list-head">
-          <div class="col-span-2">Estado</div>
+          <div class="col-span-2">Status</div>
           <div class="col-span-2">Ticket</div>
-          <div class="col-span-5">Título</div>
-          <div class="col-span-2">Actualizado</div>
-          <div class="col-span-1 text-right">Resp.</div>
+          <div class="col-span-5">Title</div>
+          <div class="col-span-2">Updated</div>
+          <div class="col-span-1 text-right">Reply</div>
         </div>
         <div class="bg-gray-50/30">
           ${archivedItems.map(t => renderTicketRow(t, true)).join('')}
@@ -220,16 +220,16 @@
           <div class="section-header">
             <div class="flex items-center gap-2">
               <i class="fas fa-list text-blue-500"></i>
-              <span class="section-label">Resultados</span>
+              <span class="section-label">Results</span>
             </div>
             <span class="text-xs text-gray-400 font-medium">${items.length}</span>
           </div>
           <div class="list-head">
-            <div class="col-span-2">Estado</div>
+            <div class="col-span-2">Status</div>
             <div class="col-span-2">Ticket</div>
-            <div class="col-span-5">Título</div>
-            <div class="col-span-2">Actualizado</div>
-            <div class="col-span-1 text-right">Resp.</div>
+            <div class="col-span-5">Title</div>
+            <div class="col-span-2">Updated</div>
+            <div class="col-span-1 text-right">Reply</div>
           </div>
           <div>
             ${items.map(t => renderTicketRow(t, ARCHIVED_STATUSES.includes(t.status))).join('')}

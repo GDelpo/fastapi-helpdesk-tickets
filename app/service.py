@@ -61,7 +61,7 @@ class QueueService:
         count = await self.repo.count_tickets(queue_id)
         if count > 0:
             from app.exceptions import ValidationError
-            raise ValidationError(f"No se puede eliminar: la categoría tiene {count} tickets activos")
+            raise ValidationError(f"Cannot delete: the category has {count} active tickets")
         await self.repo.delete(queue)
 
 
@@ -109,7 +109,7 @@ class TicketService:
             is_submitter = ticket.submitter_username == current_user.user_name
             is_watcher = any(w.user_id == current_user.user_name for w in ticket.watchers)
             if not is_submitter and not is_watcher:
-                raise AuthorizationError("No tenés permiso para ver este ticket")
+                raise AuthorizationError("You don't have permission to view this ticket")
         if ticket.queue_id:
             q = await self.queue_repo.get_by_id(ticket.queue_id)
             if q:
@@ -168,7 +168,7 @@ class TicketService:
                     user_id=data.assigned_to,
                     ticket_id=ticket.id,
                     type=NotificationType.NEW_TICKET,
-                    content=f"Se te asignó el ticket: {ticket.title}",
+                    content=f"You were assigned the ticket: {ticket.title}",
                 ))
 
         # Mentions: union of explicit list + @mentions parsed from description text
@@ -185,7 +185,7 @@ class TicketService:
                     user_id=username,
                     ticket_id=ticket.id,
                     type=NotificationType.MENTION,
-                    content=f"Te mencionaron en: {ticket.title}",
+                    content=f"You were mentioned in: {ticket.title}",
                 ))
 
         # In-app notification to default agent (if queue has one)
@@ -194,7 +194,7 @@ class TicketService:
                 user_id=queue.assigned_to_id,
                 ticket_id=ticket.id,
                 type=NotificationType.NEW_TICKET,
-                content=f"Nuevo ticket: {ticket.title}",
+                content=f"New ticket: {ticket.title}",
             ))
 
         # Email notifications
@@ -223,14 +223,14 @@ class TicketService:
             if ticket.submitter_username != current_user.user_name:
                 watchers = await self.ticket_repo.get_watchers(ticket_id)
                 if current_user.user_name not in {w.user_id for w in watchers}:
-                    raise AuthorizationError("No tenés permiso para modificar este ticket")
+                    raise AuthorizationError("You don't have permission to modify this ticket")
 
             allowed = {"title", "description", "priority"}
             # Allow employees to resolve/reopen
             if "status" in update_fields:
                 employee_statuses = {TicketStatus.RESOLVED, TicketStatus.REOPENED}
                 if update_fields["status"] not in employee_statuses:
-                    raise AuthorizationError("Solo podés marcar el ticket como Resuelto o Reabierto")
+                    raise AuthorizationError("You can only mark the ticket as Resolved or Reopened")
                 allowed.add("status")
             # Allow submitter or current assignee to reassign
             if "assigned_to" in update_fields:
@@ -239,7 +239,7 @@ class TicketService:
                     allowed.add("assigned_to")
             restricted = set(update_fields.keys()) - allowed
             if restricted:
-                raise AuthorizationError(f"No podés modificar: {', '.join(restricted)}")
+                raise AuthorizationError(f"You cannot modify: {', '.join(restricted)}")
         for field, value in update_fields.items():
             setattr(ticket, field, value)
         ticket = await self.ticket_repo.update(ticket)
@@ -253,7 +253,7 @@ class TicketService:
                     user_id=new_assignee,
                     ticket_id=ticket.id,
                     type=NotificationType.NEW_TICKET,
-                    content=f"Se te asignó el ticket: {ticket.title}",
+                    content=f"You were assigned the ticket: {ticket.title}",
                 ))
             if dispatcher:
                 q = await self.queue_repo.get_by_id(ticket.queue_id)
@@ -262,7 +262,7 @@ class TicketService:
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,
-                comment=f"Responsable asignado: @{new_assignee} por @{current_user.user_name}.",
+                comment=f"Owner assigned: @{new_assignee} by @{current_user.user_name}.",
                 is_public=True,
                 is_staff=True,
             ))
@@ -275,7 +275,7 @@ class TicketService:
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,
-                comment=f"Prioridad cambiada de «{old_pri_label}» a «{new_pri_label}» por @{current_user.user_name}.",
+                comment=f"Priority changed from «{old_pri_label}» to «{new_pri_label}» by @{current_user.user_name}.",
                 is_public=True,
                 is_staff=True,
                 new_priority=str(new_priority),
@@ -292,7 +292,7 @@ class TicketService:
                             user_id=w.user_id,
                             ticket_id=ticket.id,
                             type=NotificationType.STATUS_CHANGE,
-                            content=f"Estado cambiado a {new_status}: {ticket.title}",
+                            content=f"Status changed to {new_status}: {ticket.title}",
                         ))
             if dispatcher:
                 await dispatcher.ticket_status_changed(ticket, new_status)
@@ -301,7 +301,7 @@ class TicketService:
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,
-                comment=f"Estado cambiado de «{old_label}» a «{new_label}» por @{current_user.user_name}.",
+                comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
                 is_public=True,
                 is_staff=True,
                 new_status=str(new_status),
@@ -313,7 +313,7 @@ class TicketService:
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,
-                comment=f"Resolución registrada por @{current_user.user_name}.",
+                comment=f"Resolution recorded by @{current_user.user_name}.",
                 is_public=True,
                 is_staff=True,
             ))
@@ -331,7 +331,7 @@ class TicketService:
         if not ticket:
             raise EntityNotFoundError("Ticket", ticket_id)
         if not self._is_admin(current_user):
-            raise AuthorizationError("Solo admins pueden cerrar tickets")
+            raise AuthorizationError("Only admins can close tickets")
         old_status = ticket.status
         ticket.status = TicketStatus.CLOSED
         ticket = await self.ticket_repo.update(ticket)
@@ -342,7 +342,7 @@ class TicketService:
         await self.ticket_repo.add_followup(FollowUp(
             ticket_id=ticket_id,
             user_name=current_user.user_name,
-            comment=f"Estado cambiado de «{old_label}» a «{new_label}» por @{current_user.user_name}.",
+            comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
             is_public=True,
             is_staff=True,
             new_status=str(TicketStatus.CLOSED),
@@ -357,7 +357,7 @@ class TicketService:
                         user_id=w.user_id,
                         ticket_id=ticket.id,
                         type=NotificationType.STATUS_CHANGE,
-                        content=f"Ticket cerrado: {ticket.title}",
+                        content=f"Ticket closed: {ticket.title}",
                     ))
 
         # Email notification — ticket_status_changed only sends for "resolved"; close is
@@ -386,11 +386,11 @@ class TicketService:
 
         if not self._is_admin(current_user):
             if attachment.uploaded_by != current_user.user_name:
-                raise AuthorizationError("No podés eliminar adjuntos de otros usuarios")
+                raise AuthorizationError("You cannot delete attachments from other users")
             age = (datetime.now(UTC) - attachment.created_at).total_seconds() / 3600
             if age > 24:
                 raise AuthorizationError(
-                    "Solo podés eliminar adjuntos dentro de las 24hs de haberlos subido"
+                    "You can only delete attachments within 24 hours of uploading them"
                 )
 
         storage_name = attachment.storage_name
@@ -401,7 +401,7 @@ class TicketService:
         await self.ticket_repo.add_followup(FollowUp(
             ticket_id=ticket_id,
             user_name=current_user.user_name,
-            comment=f"Adjunto '{filename}' eliminado por @{current_user.user_name}.",
+            comment=f"Attachment '{filename}' deleted by @{current_user.user_name}.",
             is_public=True,
             is_staff=True,
         ))
@@ -422,7 +422,7 @@ class TicketService:
             is_submitter = ticket.submitter_username == current_user.user_name
             watcher = await self.ticket_repo.get_watcher(ticket_id, current_user.user_name)
             if not is_submitter and not watcher:
-                raise AuthorizationError("No tenés permiso para responder este ticket")
+                raise AuthorizationError("You don't have permission to reply to this ticket")
 
         is_staff = self._is_admin(current_user)
 
@@ -436,7 +436,7 @@ class TicketService:
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,
-                comment=f"Estado cambiado de «{old_label}» a «{new_label}».",
+                comment=f"Status changed from «{old_label}» to «{new_label}».",
                 is_public=True,
                 is_staff=False,
                 new_status=str(TicketStatus.REOPENED),
@@ -449,7 +449,7 @@ class TicketService:
                             user_id=w.user_id,
                             ticket_id=ticket.id,
                             type=NotificationType.STATUS_CHANGE,
-                            content=f"Ticket reabierto por el solicitante: {ticket.title}",
+                            content=f"Ticket reopened by submitter: {ticket.title}",
                         ))
 
         # Parse @mentions from comment
@@ -481,7 +481,7 @@ class TicketService:
                     user_id=username,
                     ticket_id=ticket.id,
                     type=NotificationType.MENTION,
-                    content=f"Te mencionaron en: {ticket.title}",
+                    content=f"You were mentioned in: {ticket.title}",
                 ))
 
         # REPLY notifications
@@ -495,7 +495,7 @@ class TicketService:
                             user_id=w.user_id,
                             ticket_id=ticket.id,
                             type=NotificationType.REPLY,
-                            content=f"Respuesta de soporte en: {ticket.title}",
+                            content=f"Support reply on: {ticket.title}",
                         ))
             else:
                 # Employee reply → notify assigned agent only (in-app)
@@ -504,7 +504,7 @@ class TicketService:
                         user_id=ticket.assigned_to,
                         ticket_id=ticket.id,
                         type=NotificationType.REPLY,
-                        content=f"Nueva respuesta del solicitante en: {ticket.title}",
+                        content=f"New reply from submitter on: {ticket.title}",
                     ))
 
         # PENDING_WAITING notification
@@ -514,7 +514,7 @@ class TicketService:
                     user_id=ticket.submitter_username,
                     ticket_id=ticket.id,
                     type=NotificationType.PENDING_WAITING,
-                    content=f"Tu ticket está pendiente de tu respuesta: {ticket.title}",
+                    content=f"Your ticket is waiting for your reply: {ticket.title}",
                 ))
 
         # STATUS_CHANGE notification on explicit change
@@ -526,7 +526,7 @@ class TicketService:
                         user_id=w.user_id,
                         ticket_id=ticket.id,
                         type=NotificationType.STATUS_CHANGE,
-                        content=f"Estado cambiado a {data.new_status}: {ticket.title}",
+                        content=f"Status changed to {data.new_status}: {ticket.title}",
                     ))
 
         # Email notifications

@@ -20,15 +20,15 @@ _email_env = Environment(
 )
 
 _TEMPLATES: dict[str, tuple] = {
-    "ticket-opened":         (lambda t: f"[{t.id.hex[:8]}] Ticket recibido: {t.title}",                   "email/ticket_opened.html"),
-    "ticket-assigned-staff": (lambda t: f"[{t.id.hex[:8]}] Ticket asignado: {t.title}",                   "email/ticket_assigned_staff.html"),
-    "ticket-mention":        (lambda t: f"[{t.id.hex[:8]}] Te mencionaron en: {t.title}",                 "email/ticket_mention.html"),
-    "ticket-reply":          (lambda t: f"[{t.id.hex[:8]}] Nueva respuesta: {t.title}",                   "email/ticket_reply.html"),
-    "ticket-reply-to-staff": (lambda t: f"[{t.id.hex[:8]}] Nueva respuesta del solicitante: {t.title}",  "email/ticket_reply.html"),
-    "ticket-pending":        (lambda t: f"[{t.id.hex[:8]}] Pendiente de tu respuesta: {t.title}",         "email/ticket_pending.html"),
-    "ticket-resolved":       (lambda t: f"[{t.id.hex[:8]}] Resuelto: {t.title}",                         "email/ticket_resolved.html"),
-    "ticket-reminder-staff":     (lambda t: f"[{t.id.hex[:8]}] Recordatorio: ticket sin respuesta: {t.title}",  "email/ticket_reminder_staff.html"),
-    "ticket-reminder-submitter": (lambda t: f"[{t.id.hex[:8]}] Tu solicitud espera tu respuesta: {t.title}",    "email/ticket_reminder_submitter.html"),
+    "ticket-opened":         (lambda t: f"[{t.id.hex[:8]}] Ticket received: {t.title}",                   "email/ticket_opened.html"),
+    "ticket-assigned-staff": (lambda t: f"[{t.id.hex[:8]}] Ticket assigned: {t.title}",                   "email/ticket_assigned_staff.html"),
+    "ticket-mention":        (lambda t: f"[{t.id.hex[:8]}] You were mentioned in: {t.title}",             "email/ticket_mention.html"),
+    "ticket-reply":          (lambda t: f"[{t.id.hex[:8]}] New reply: {t.title}",                        "email/ticket_reply.html"),
+    "ticket-reply-to-staff": (lambda t: f"[{t.id.hex[:8]}] New reply from submitter: {t.title}",          "email/ticket_reply.html"),
+    "ticket-pending":        (lambda t: f"[{t.id.hex[:8]}] Waiting for your reply: {t.title}",            "email/ticket_pending.html"),
+    "ticket-resolved":       (lambda t: f"[{t.id.hex[:8]}] Resolved: {t.title}",                         "email/ticket_resolved.html"),
+    "ticket-reminder-staff":     (lambda t: f"[{t.id.hex[:8]}] Reminder: ticket awaiting reply: {t.title}",  "email/ticket_reminder_staff.html"),
+    "ticket-reminder-submitter": (lambda t: f"[{t.id.hex[:8]}] Your request is waiting for your reply: {t.title}", "email/ticket_reminder_submitter.html"),
 }
 
 

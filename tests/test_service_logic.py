@@ -56,14 +56,14 @@ def test_build_meta_structure():
     assert set(priority_values) == {"1", "2", "3", "4", "5"}
 
 
-def test_status_labels_spanish():
+def test_status_labels_english():
     from app.models import STATUS_LABELS
-    assert STATUS_LABELS["open"] == "Abierto"
-    assert STATUS_LABELS["in_progress"] == "En curso"
-    assert STATUS_LABELS["pending"] == "Pendiente"
-    assert STATUS_LABELS["reopened"] == "Reabierto"
-    assert STATUS_LABELS["resolved"] == "Resuelto"
-    assert STATUS_LABELS["closed"] == "Cerrado"
+    assert STATUS_LABELS["open"] == "Open"
+    assert STATUS_LABELS["in_progress"] == "In progress"
+    assert STATUS_LABELS["pending"] == "Pending"
+    assert STATUS_LABELS["reopened"] == "Reopened"
+    assert STATUS_LABELS["resolved"] == "Resolved"
+    assert STATUS_LABELS["closed"] == "Closed"
 
 
 def test_ticket_create_has_assigned_to():
@@ -131,9 +131,9 @@ def test_login_response_raises_on_missing_token():
 def test_audit_comment_includes_actor_assignment():
     actor = "gdelp"
     new_assignee = "mlopez"
-    comment = f"Responsable asignado: @{new_assignee} por @{actor}."
+    comment = f"Owner assigned: @{new_assignee} by @{actor}."
     assert "@mlopez" in comment
-    assert "por @gdelp" in comment
+    assert "by @gdelp" in comment
 
 
 def test_audit_comment_includes_actor_priority():
@@ -141,16 +141,16 @@ def test_audit_comment_includes_actor_priority():
     actor = "gdelp"
     old_label = PRIORITY_LABELS["3"]
     new_label = PRIORITY_LABELS["1"]
-    comment = f"Prioridad cambiada de «{old_label}» a «{new_label}» por @{actor}."
+    comment = f"Priority changed from «{old_label}» to «{new_label}» by @{actor}."
     assert "Normal" in comment
-    assert "Crítica" in comment
-    assert "por @gdelp" in comment
+    assert "Critical" in comment
+    assert "by @gdelp" in comment
 
 
 def test_audit_comment_resolution():
     actor = "gdelp"
-    comment = f"Resolución registrada por @{actor}."
-    assert "por @gdelp" in comment
+    comment = f"Resolution recorded by @{actor}."
+    assert "by @gdelp" in comment
 
 
 def test_attachment_delete_permission_admin():

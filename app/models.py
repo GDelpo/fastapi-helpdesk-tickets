@@ -90,7 +90,7 @@ def _build_meta() -> dict:
 # =============================================================================
 
 class Queue(SQLModel, table=True):
-    """Categoría/cola de tickets, derivada del árbol de Noble-Docu."""
+    """Ticket category/queue. Hierarchical (parent/child) with optional assignee."""
 
     __tablename__ = "queues"
 

@@ -14,18 +14,16 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
+# Default starter queues — generic examples. Customize or replace by editing
+# this list or adding a follow-up migration with your own taxonomy before
+# running `alembic upgrade head` for the first time. After first boot, manage
+# queues via the admin dashboard.
 INITIAL_QUEUES = [
-    {"name": "ADMINISTRACIÓN",  "slug": "administracion",            "description": "Consultas sobre Administración.",              "icon": "building",    "color": "blue",   "sort_order": 1,  "parent_slug": None},
-    {"name": "CONTADURÍA",      "slug": "administracion-contaduria", "description": "Consultas sobre Administración > Contaduría.", "icon": "calculator",  "color": "blue",   "sort_order": 2,  "parent_slug": "administracion"},
-    {"name": "SISTEMAS",        "slug": "administracion-sistemas",   "description": "Consultas sobre Administración > Sistemas.",   "icon": "server",      "color": "blue",   "sort_order": 3,  "parent_slug": "administracion"},
-    {"name": "COMERCIAL",       "slug": "comercial",                 "description": "Consultas sobre el área Comercial.",           "icon": "briefcase",   "color": "green",  "sort_order": 4,  "parent_slug": None},
-    {"name": "MARKETING",       "slug": "comercial-marketing",       "description": "Consultas sobre Marketing.",                   "icon": "megaphone",   "color": "green",  "sort_order": 5,  "parent_slug": "comercial"},
-    {"name": "NOBLE ONLINE",    "slug": "noble-online",              "description": "Consultas sobre Noble Online.",                "icon": "globe",       "color": "indigo", "sort_order": 7,  "parent_slug": None},
-    {"name": "RR HH",           "slug": "rrhh",                      "description": "Consultas sobre Recursos Humanos.",            "icon": "users",       "color": "purple", "sort_order": 8,  "parent_slug": None},
-    {"name": "TÉCNICA",         "slug": "tecnica",                   "description": "Consultas sobre el área Técnica.",             "icon": "wrench",      "color": "orange", "sort_order": 9,  "parent_slug": None},
-    {"name": "EMISIÓN",         "slug": "tecnica-emision",           "description": "Consultas sobre Técnica > Emisión.",           "icon": "file-text",   "color": "orange", "sort_order": 10, "parent_slug": "tecnica"},
-    {"name": "SUSCRIPCIÓN",     "slug": "tecnica-suscripcion",       "description": "Consultas sobre Técnica > Suscripción.",       "icon": "file-check",  "color": "orange", "sort_order": 11, "parent_slug": "tecnica"},
-    {"name": "Otros",           "slug": "otros",                     "description": "Consultas que no encajan en las categorías.",  "icon": "help-circle", "color": "slate",  "sort_order": 99, "parent_slug": None},
+    {"name": "Technical Issue", "slug": "technical-issue", "description": "Hardware, software or connectivity problems.", "icon": "server",      "color": "blue",   "sort_order": 1,  "parent_slug": None},
+    {"name": "Bug Report",      "slug": "bug-report",      "description": "Defects found in internal tools or products.",  "icon": "bug",         "color": "red",    "sort_order": 2,  "parent_slug": None},
+    {"name": "Access Request",  "slug": "access-request",  "description": "Permissions, accounts and access to systems.",  "icon": "key",         "color": "purple", "sort_order": 3,  "parent_slug": None},
+    {"name": "HR",              "slug": "hr",              "description": "Human Resources inquiries.",                    "icon": "users",       "color": "green",  "sort_order": 4,  "parent_slug": None},
+    {"name": "General Request", "slug": "general-request", "description": "Generic requests that don't fit other queues.", "icon": "help-circle", "color": "slate",  "sort_order": 99, "parent_slug": None},
 ]
 
 

@@ -29,22 +29,23 @@ class Settings(BaseSettings):
     # =========================================================================
     # Application Metadata
     # =========================================================================
-    service_name: str = "Mesa de Ayuda"
+    service_name: str = "Helpdesk"
     project_name: str = "Tickets Service"
     project_version: str = "1.0.0"
-    project_description: str = "Mesa de ayuda interna — Noble Seguros"
+    project_description: str = "Internal helpdesk / ticketing microservice"
     api_prefix: str = "/api/v1"
 
     # =========================================================================
-    # Branding
+    # Branding (override via .env to customize)
     # =========================================================================
-    company_name: str = "Noble Seguros"
-    company_legal_tagline: str = "Entidad autorizada por la Superintendencia de Seguros de la Nación"
-    portal_navbar_title: str = "Noble Seguros"
-    support_email: str = "sistemas@nobleseguros.com"
-    company_website: str = "https://www.nobleseguros.com"
+    company_name: str = "Helpdesk"
+    company_legal_tagline: str = ""
+    portal_navbar_title: str = "Helpdesk"
+    support_email: str = "support@example.com"
+    company_website: str = "https://example.com"
     company_logo_url: str = ""
     company_favicon_url: str = ""
+    docs_url: str = ""  # Optional link to external docs shown in admin sidebar
 
     # =========================================================================
     # CORS
@@ -73,9 +74,9 @@ class Settings(BaseSettings):
     # Identity Service
     # =========================================================================
     # Server-to-server (red Docker interna)
-    identity_service_url: str = "http://identidad_api:8080/api/v1"
+    identity_service_url: str = "http://identity_api:8080/api/v1"
     # URL externa (browser → Swagger UI tokenUrl)
-    identity_external_url: str = "http://localhost:8080/identidad/api/v1"
+    identity_external_url: str = "http://localhost:8080/identity/api/v1"
 
     @computed_field
     @property

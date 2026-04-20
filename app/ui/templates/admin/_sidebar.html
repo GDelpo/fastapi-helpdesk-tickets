@@ -20,22 +20,14 @@
     {% endfor %}
   </nav>
 
-  <!-- Plataforma -->
+  {# Optional external docs link (set DOCS_URL in .env to enable) #}
+  {% if docs_url %}
   <div class="px-3 py-2 border-t" style="border-color: var(--color-border-subtle);">
-    <div class="text-[10px] font-semibold uppercase tracking-widest px-2 py-2" style="color: var(--color-text-muted);">Servicios</div>
     <div class="grid grid-cols-4 gap-0.5 px-1">
-      <a href="/identidad/dashboard/" target="_blank" title="Identidad" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="shield" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/mailsender/dashboard/" target="_blank" title="Mailsender" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="mail" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/polizas/dashboard/" target="_blank" title="Pólizas" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="scroll-text" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/dispatcher/dashboard/" target="_blank" title="Dispatcher" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="send" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/drive/dashboard/" target="_blank" title="Drive" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="hard-drive" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/storage/dashboard/" target="_blank" title="Storage" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="cloud" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/anulaciones/dashboard/" target="_blank" title="Anulaciones" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="bell-off" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/watcher/dashboard/" target="_blank" title="Watcher" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="eye" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="/legados/dashboard/" target="_blank" title="Legados" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="database" class="w-4 h-4" aria-hidden="true"></i></a>
-      <a href="http://docs.nobleseguros.com/dashboard/" target="_blank" title="Noble Docu" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="book-open" class="w-4 h-4" aria-hidden="true"></i></a>
+      <a href="{{ docs_url }}" target="_blank" title="Docs" class="flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-2)]" style="color:var(--color-text-muted)"><i data-lucide="book-open" class="w-4 h-4" aria-hidden="true"></i></a>
     </div>
   </div>
+  {% endif %}
 
   <div class="p-3 border-t" style="border-color: var(--color-border-subtle);">
     <div class="flex items-center gap-3 px-3 py-2">

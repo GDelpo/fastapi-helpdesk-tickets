@@ -1,41 +1,89 @@
-# Tickets Service
+# fastapi-helpdesk-tickets
 
-Mesa de ayuda interna para empleados de Noble Seguros. FastAPI + PostgreSQL + Jinja2 UI.
+<p>
+  <img alt="Language" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <img alt="Status" src="https://img.shields.io/badge/status-wip-yellow">
+</p>
 
-## Repositorio
+> FastAPI helpdesk / ticketing microservice with an admin dashboard, an employee portal, email notifications and hierarchical categories.
 
-```bash
-git clone http://192.168.190.95/forgejo/noble/tickets.git
-git pull origin main   # actualizar
-```
-
-> Primera vez en una máquina nueva: ver [SETUP.md](http://192.168.190.95/forgejo/noble/workspace/raw/branch/main/SETUP.md) para configurar proxy y credenciales Git.
+> [!NOTE]
+> **This is a scaffold / template.** It was extracted from an in-house helpdesk running in production, with organization-specific categories, branding and hostnames replaced by generic defaults. Fork it and customize the seed queues (`alembic/versions/001_init.py`), branding (`.env`), and UI copy to match your organization.
 
 ## Features
 
-- Creación, asignación, seguimiento y resolución de tickets
-- Portal de empleados (`/portal/`) — interfaz amigable para abrir y seguir tickets
-- Panel de administración (`/dashboard/`) — gestión completa para staff de IT
-- Notificaciones por email via mailsender (5 plantillas Outlook-compatible)
-- Organización por categorías (queues) seeded desde noble-docu
-- Niveles de prioridad: Crítica, Alta, Normal, Baja, Muy Baja
-- Menciones de usuarios (@mention) con autocompletado
-- Sub-path routing via Traefik (`/tickets/*`)
+- REST API under `/api/v1/` with JWT auth against an external identity service
+- **Admin dashboard** (`/dashboard/`) — staff view: tickets, queues, assignment, resolution
+- **Employee portal** (`/portal/`) — end-user view: open tickets, follow up, attachments
+- Hierarchical ticket **queues / categories** (parent-child)
+- **Follow-ups** with `@mention` autocomplete, attachments, watchers, and related-ticket links
+- **Email notifications** (8 templates) via an external mailsender microservice
+- Background **reminder task** for stale tickets (configurable days / interval)
+- Sub-path routing via Traefik (`/tickets/*`) ready out of the box
 
-## Quick Start (development)
+## Architecture
+
+This service is designed to plug into a small microservice ecosystem:
+
+- **identity service** — validates JWTs (`GET /me`) and exposes user search for `@mention`.
+- **mailsender service** — receives `POST /api/v1/emails` with a `template_slug`.
+
+Both dependencies are contract-based (plain HTTP). You can swap them for your own implementations — the client code lives in `app/auth_service.py` and `app/notifications.py`.
+
+```
+app/
+├── main.py              # App factory, lifespan, middleware, routers, /health
+├── config.py            # Pydantic settings (env vars)
+├── api.py               # FastAPI router /api/v1/
+├── service.py           # Business logic
+├── repository.py        # Async SQLModel data access
+├── models.py            # SQLModel tables
+├── schemas.py           # Pydantic request/response (camelCase aliases)
+├── dependencies.py      # CurrentUser, AdminUser, PaginationParams
+├── auth_service.py      # IdentityServiceClient (httpx)
+├── notifications.py     # Mailsender client
+├── reminders.py         # Background reminder task
+├── middleware.py        # ProxyHeadersMiddleware + RequestLoggingMiddleware
+├── exceptions.py        # ServiceException + handlers
+├── database.py          # async engine + session_maker (asyncpg)
+└── ui/                  # Jinja2 admin + portal (Tailwind CSS)
+alembic/versions/        # Migrations (001 seeds generic starter queues)
+docker/                  # dev / standalone / traefik compose variants
+```
+
+## Quickstart
+
+### Requirements
+
+- Python 3.12+
+- PostgreSQL 16+
+- An identity service that issues JWTs and exposes `GET /api/v1/me` (project: [`fastapi-identity`](https://github.com/GDelpo) or your own)
+- A mailsender service that accepts `POST /api/v1/emails` with a `template_slug` (optional — disables notifications if unreachable)
+
+### Install
 
 ```bash
-cd tickets
-
+git clone https://github.com/GDelpo/fastapi-helpdesk-tickets.git
+cd fastapi-helpdesk-tickets
 python -m venv env
-.\env\Scripts\Activate.ps1   # Windows PowerShell
-
+source env/bin/activate          # Linux/Mac
+# .\env\Scripts\Activate.ps1     # Windows
 pip install -r requirements.txt
-pip install -r requirements-dev.txt
+```
 
+### Configure
+
+```bash
 cp .env.example .env
-# Completar: DB_PASSWORD, IDENTITY_SERVICE_URL
+# Edit DB_PASSWORD, IDENTITY_SERVICE_URL, MAILSENDER_URL, COMPANY_NAME, ...
+```
 
+See [Configuration](#configuration) for the full list.
+
+### Run
+
+```bash
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
@@ -45,209 +93,62 @@ uvicorn app.main:app --reload --port 8000
 - API docs: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
-## Production Deployment
+### Docker
+
+Three compose variants are provided:
+
+| File | Usage |
+|---|---|
+| `docker/docker-compose.dev.yml` | Local dev with bind mount and `DEBUG=True` |
+| `docker/docker-compose.prod.standalone.yml` | Production without a reverse proxy |
+| `docker/docker-compose.prod.traefik.yml` | Production behind Traefik on `/tickets/*` |
 
 ```bash
-# Copiar al servidor (desde PowerShell local)
-scp -r tickets gdelponte@192.168.190.95:/opt/microservicios/tickets
-
-# En el servidor (SSH)
-cd /opt/microservicios/tickets
-cp .env.example .env   # Si es primera vez
 docker compose --env-file .env -f docker/docker-compose.prod.traefik.yml up -d --build api
 ```
 
-Nota: el `docker build` de `tickets_api` compila automaticamente `admin.css` y `portal.css` desde `app/dashboard/static_src` (no se requiere ejecutar `npm` manualmente en el servidor).
+## Configuration
 
-- Portal: http://192.168.190.95/tickets/portal/
-- Admin: http://192.168.190.95/tickets/dashboard/
-- API: http://192.168.190.95/tickets/api/v1/
-- Health: http://192.168.190.95/tickets/health
+Key environment variables (see `.env.example` for the full list):
 
-## Project Structure
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | PostgreSQL connection | `localhost` / `5432` / `tickets` / `tickets_user` / — |
+| `IDENTITY_SERVICE_URL` | Internal URL of the identity microservice | `http://identity_api:8080/api/v1` |
+| `IDENTITY_EXTERNAL_URL` | Browser-reachable identity URL (Swagger UI `tokenUrl`) | `http://localhost/identity/api/v1` |
+| `MAILSENDER_URL` | Mailsender `POST /emails` endpoint | `http://mailsender_api:8081/api/v1/emails` |
+| `PORTAL_BASE_URL` | Base URL embedded in outgoing email links | `http://localhost/tickets/portal` |
+| `COMPANY_NAME` / `PORTAL_NAVBAR_TITLE` / `SUPPORT_EMAIL` / `COMPANY_LOGO_URL` | Branding overrides | `Helpdesk` / `Helpdesk` / `support@example.com` / — |
+| `DOCS_URL` | Optional link shown in the admin sidebar | — |
+| `REMINDER_STAFF_DAYS` / `REMINDER_SUBMITTER_DAYS` / `REMINDER_ENABLED` | Stale-ticket reminder tuning | `2` / `2` / `true` |
 
-```
-tickets/
-├── app/
-│   ├── main.py              # App factory, lifespan, middleware, routers, /health
-│   ├── config.py            # Pydantic-settings
-│   ├── api.py               # FastAPI router /api/v1/
-│   ├── service.py           # Business logic (TicketService, QueueService)
-│   ├── repository.py        # Data access (async SQLModel)
-│   ├── models.py            # SQLModel: Queue, Ticket, FollowUp, Attachment, Watcher, Notification
-│   ├── schemas.py           # Pydantic request/response (camelCase aliases)
-│   ├── dependencies.py      # CurrentUser, AdminUser, PaginationParams
-│   ├── auth_service.py      # IdentityServiceClient (httpx → identidad)
-│   ├── notifications.py     # Mailsender integration (5 template slugs)
-│   ├── middleware.py         # ProxyHeadersMiddleware + RequestLoggingMiddleware
-│   ├── exceptions.py        # ServiceException + handlers
-│   ├── logger.py            # configure_logging()
-│   ├── database.py          # async engine + session_maker (asyncpg)
-│   └── dashboard/
-│       ├── routes.py         # Jinja2 views: admin + portal
-│       ├── static/           # Assets compilados servidos por FastAPI
-│       │   ├── css/admin.css
-│       │   ├── css/portal.css
-│       │   ├── js/lucide.min.js
-│       │   ├── css/fonts.css
-│       │   └── fonts/*.woff2
-│       ├── static_src/       # Fuente Tailwind + scripts de compilación
-│       │   ├── src/admin.css
-│       │   ├── src/portal.css
-│       │   ├── package.json
-│       │   └── tailwind.config.js
-│       └── templates/
-│           ├── base.html, shell.html, login.html     # Admin base
-│           ├── _partials/    # _sidebar.html, _topbar.html
-│           ├── _js/          # _auth.js.html, _helpers.js.html
-│           ├── admin/        # overview, tickets, ticket_detail, queues
-│           └── portal/       # portal_base, portal_shell, login, inicio,
-│                             # categories, my_tickets, new_ticket, ticket_detail
-├── alembic/
-│   ├── env.py
-│   └── versions/
-│       └── 001_initial.py    # Crea tablas + seeds 14 categorías
-├── docker/
-│   ├── Dockerfile
-│   ├── docker-compose.dev.yml
-│   ├── docker-compose.prod.standalone.yml
-│   └── docker-compose.prod.traefik.yml
-├── entrypoint.sh
-├── requirements.txt
-├── requirements-dev.txt
-├── .env.example
-└── alembic.ini
-```
-
-## Technology Stack
-
-| Component | Version |
-|-----------|---------|
-| Python | 3.14 |
-| FastAPI | 0.128.0 |
-| SQLModel | 0.0.31 |
-| Pydantic | 2.12.5 |
-| Alembic | 1.14.0 |
-| Jinja2 | 3.1.6 |
-| PostgreSQL | 16-alpine |
-| asyncpg | (via SQLModel) |
-| httpx | 0.28.1 |
-| Uvicorn | 0.32.1 |
-
-## Frontend Assets (Compiled CSS)
-
-Los dashboards usan CSS compilado (no Tailwind runtime en browser).
-
-```bash
-cd tickets/app/dashboard/static_src
-npm install
-npm run build:css
-```
-
-- `build:portal` compila `src/portal.css` → `static/css/portal.css`
-- `build:admin` compila `src/admin.css` → `static/css/admin.css`
-- `build:css` compila ambos (recomendado para release)
-
-## API Endpoints (`/api/v1/`)
+## API
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
-| POST | `/login` | Login via identidad | — |
-| GET | `/me` | Current user info | JWT |
-| GET | `/queues/` | List queues | JWT |
-| POST | `/queues/` | Create queue | Admin |
-| PATCH | `/queues/{id}` | Update queue | Admin |
-| DELETE | `/queues/{id}` | Delete queue | Admin |
-| GET | `/tickets/` | List all tickets (staff) | JWT |
-| POST | `/tickets/` | Create ticket (staff) | JWT |
-| GET | `/tickets/{id}` | Ticket detail | JWT |
-| PATCH | `/tickets/{id}` | Update ticket | JWT |
-| DELETE | `/tickets/{id}` | Close ticket | Admin |
-| POST | `/tickets/{id}/followups/` | Add followup | JWT |
-| GET | `/my/tickets/` | My tickets (portal) | JWT |
-| POST | `/my/tickets/` | Create ticket (portal) | JWT |
-| GET | `/my/notifications/` | My notifications | JWT |
-| POST | `/my/notifications/read-all` | Mark all read | JWT |
-| PATCH | `/my/notifications/{id}` | Mark one read | JWT |
-| GET | `/users/search?q=` | User autocomplete | JWT |
-| GET | `/identity/users` | List users (admin) | Admin |
+| POST | `/api/v1/login` | Login proxy to the identity service | — |
+| GET | `/api/v1/me` | Current user | JWT |
+| GET / POST | `/api/v1/queues/` | List / create queues | JWT / Admin |
+| PATCH / DELETE | `/api/v1/queues/{id}` | Update / delete queue | Admin |
+| GET / POST | `/api/v1/tickets/` | List / create tickets | JWT |
+| GET / PATCH | `/api/v1/tickets/{id}` | Ticket detail / update | JWT |
+| POST | `/api/v1/tickets/{id}/followups/` | Add a follow-up comment | JWT |
+| GET / POST | `/api/v1/my/tickets/` | Portal: my tickets | JWT |
+| GET / PATCH | `/api/v1/my/notifications/` | Portal: notifications | JWT |
+| GET | `/api/v1/users/search?q=` | User autocomplete (for `@mentions`) | JWT |
 
-## Authentication
+Full schema available at `/docs` (Swagger UI) and `/redoc`.
 
-JWT via identidad service:
-1. Browser sends credentials to `POST /api/v1/login`
-2. Tickets proxies to identidad `POST /api/v1/login` → JWT
-3. Token stored in `localStorage` (`tk_token` / `tk_user`)
-4. API calls include `Authorization: Bearer {token}`
-5. Server validates via `GET {IDENTITY_SERVICE_URL}/me`
+## Customization
 
-## Email Notifications
+This is a **template**. The most common things to change:
 
-5 templates via mailsender (`POST /api/v1/emails` with `template_slug`):
+1. **Starter queues** — edit the `INITIAL_QUEUES` list in `alembic/versions/001_init.py` before the first migration, or manage them via the admin UI afterwards.
+2. **Branding** — set `COMPANY_NAME`, `PORTAL_NAVBAR_TITLE`, `COMPANY_LOGO_URL`, `COMPANY_FAVICON_URL`, `SUPPORT_EMAIL` in `.env`.
+3. **Email templates** — plain HTML in `app/ui/templates/email/`. Each picks up `{{ company_name }}` from the render context.
+4. **Identity / mailsender clients** — swap the HTTP calls in `app/auth_service.py` and `app/notifications.py` for your own providers.
+5. **UI palette** — CSS variables in `app/ui/templates/admin/base.html`.
 
-| Slug | Evento | Destinatario |
-|------|--------|-------------|
-| `ticket-opened` | Ticket creado | Solicitante |
-| `ticket-reply` | Respuesta de soporte | Solicitante |
-| `ticket-pending` | Requiere respuesta del usuario | Solicitante |
-| `ticket-resolved` | Ticket resuelto | Solicitante |
-| `ticket-assigned-staff` | Ticket asignado | Agente de soporte |
+## License
 
-## Environment Variables
-
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=tickets_user
-DB_PASSWORD=           # Required
-DB_NAME=tickets
-
-# Services (server-to-server, red Docker)
-IDENTITY_SERVICE_URL=http://identidad_api:8080/api/v1
-IDENTITY_EXTERNAL_URL=http://192.168.190.95/identidad/api/v1
-MAILSENDER_URL=http://mailsender_api:8081/api/v1/emails
-
-# Portal (URL base para links en emails)
-PORTAL_BASE_URL=http://192.168.190.95/tickets/portal
-
-# Application
-DEBUG=false
-LOG_LEVEL=INFO
-CORS_ORIGINS=["*"]
-```
-
-## Docker
-
-Multi-stage build: `python:3.14-slim`, non-root `appuser` (UID 1000). Entrypoint runs `alembic upgrade head` + `uvicorn`.
-
-| Compose file | Uso |
-|---|---|
-| `docker-compose.dev.yml` | Dev — bind mount, DEBUG=True |
-| `docker-compose.prod.standalone.yml` | Producción sin Traefik |
-| `docker-compose.prod.traefik.yml` | Producción detrás de Traefik en `/tickets` |
-
-## Useful Commands
-
-```bash
-# Migraciones
-alembic upgrade head
-docker exec -it tickets_api alembic upgrade head
-
-# Logs
-docker logs -f tickets_api
-
-# DB directa
-docker exec -it tickets_postgres psql -U tickets_user -d tickets
-
-# Health check
-curl http://192.168.190.95/tickets/health
-```
-
-## Related Services
-
-| Service | Docker URL | Purpose |
-|---|---|---|
-| identidad | `http://identidad_api:8080/api/v1` | Auth / user lookup |
-| mailsender | `http://mailsender_api:8081/api/v1/emails` | Email notifications |
-| Traefik | `http://192.168.190.95` | Reverse proxy |
+[MIT](LICENSE) © 2026 Guido Delponte

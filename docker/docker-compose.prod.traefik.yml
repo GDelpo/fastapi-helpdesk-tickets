@@ -30,7 +30,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - /opt/microservicios/data/tickets/postgres:/var/lib/postgresql/data
+      - ${DATA_ROOT:-./data}/tickets/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tickets_user} -d ${DB_NAME:-tickets}"]
       interval: 10s
@@ -63,10 +63,10 @@ services:
       DB_PORT: "5432"
       DEBUG: "false"
       # Inter-service communication (direct via Docker network, not Traefik)
-      IDENTITY_SERVICE_URL: http://identidad_api:8080/api/v1
-      MAILSENDER_URL: http://mailsender_api:8081/api/v1/emails
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity_api:8080/api/v1}
+      MAILSENDER_URL: ${MAILSENDER_URL:-http://mailsender_api:8081/api/v1/emails}
     volumes:
-      - /opt/microservicios/data/tickets/attachments:/data/attachments
+      - ${DATA_ROOT:-./data}/tickets/attachments:/data/attachments
     depends_on:
       postgres:
         condition: service_healthy

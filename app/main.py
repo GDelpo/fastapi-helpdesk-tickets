@@ -38,7 +38,7 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
         extra={"extra_fields": {"version": settings.project_version, "environment": settings.environment}},
     )
 
-    # Shared HTTP client para llamadas a identidad y mailsender
+    # Shared HTTP client for calls to identidad and mailsender
     app_instance.state.http_client = httpx.AsyncClient(
         timeout=httpx.Timeout(10.0),
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
@@ -86,7 +86,7 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
 
     async def users_cache_refresher():
         while True:
-            await asyncio.sleep(5 * 60 * 60)  # 5 horas
+            await asyncio.sleep(5 * 60 * 60)  # 5 hours
             logger.info("Refreshing users cache from Identidad...")
             app_instance.state.users_cache = await load_users_cache()
             logger.info(f"Users cache refreshed: {len(app_instance.state.users_cache)} users")

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy import Column, DateTime, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
-# asyncpg es estricto: TIMESTAMPTZ requiere que SQLAlchemy declare timezone=True
+# asyncpg is strict: TIMESTAMPTZ requires SQLAlchemy to declare timezone=True
 _TZ = DateTime(timezone=True)
 
 
@@ -36,7 +36,7 @@ class RelationType(str, enum.Enum):
 
 
 # =============================================================================
-# Display metadata — fuente única de verdad para labels y orden
+# Display metadata — single source of truth for labels and ordering
 # =============================================================================
 
 STATUS_LABELS: dict[str, str] = {
@@ -63,8 +63,8 @@ PRIORITY_LABELS: dict[str, str] = {
 
 
 def _build_meta() -> dict:
-    """Construye el dict de metadata para Jinja2 y el endpoint /meta.
-    Importar en: app/ui/admin.py, app/ui/portal.py, app/api.py
+    """Build the metadata dict for Jinja2 and the /meta endpoint.
+    Import from: app/ui/admin.py, app/ui/portal.py, app/api.py
     """
     return {
         "statuses": [
@@ -86,7 +86,7 @@ def _build_meta() -> dict:
 
 
 # =============================================================================
-# Queue (Categoría de tickets)
+# Queue (ticket category)
 # =============================================================================
 
 class Queue(SQLModel, table=True):
@@ -100,7 +100,7 @@ class Queue(SQLModel, table=True):
     slug: str = Field(max_length=100, sa_column_kwargs={"unique": True})
     description: str | None = None
     email: str | None = None
-    assigned_to_id: str | None = None  # Username del agente por defecto
+    assigned_to_id: str | None = None  # Default agent username
     is_active: bool = Field(default=True)
     sort_order: int = Field(default=0)
     icon: str | None = Field(default=None, max_length=50)
@@ -120,7 +120,7 @@ class Queue(SQLModel, table=True):
 # =============================================================================
 
 class Ticket(SQLModel, table=True):
-    """Ticket de soporte."""
+    """Support ticket."""
 
     __tablename__ = "tickets"
 
@@ -134,12 +134,12 @@ class Ticket(SQLModel, table=True):
     status: str = Field(default=TicketStatus.OPEN)
     priority: int = Field(default=TicketPriority.NORMAL)
 
-    # Quien abrió el ticket
+    # Who opened the ticket
     submitter_email: str = Field(max_length=200)
     submitter_username: str | None = None
-    created_by_id: str | None = None    # UUID de identidad (string)
+    created_by_id: str | None = None    # identidad UUID (as string)
 
-    # Asignado a (staff) — username, no UUID
+    # Assigned to (staff) — username, not UUID
     assigned_to: str | None = None
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_type=_TZ)
@@ -161,25 +161,25 @@ class Ticket(SQLModel, table=True):
 
 
 # =============================================================================
-# FollowUp (comentario/respuesta en un ticket)
+# FollowUp (comment/reply on a ticket)
 # =============================================================================
 
 class FollowUp(SQLModel, table=True):
-    """Comentario o actualización en un ticket."""
+    """Comment or update on a ticket."""
 
     __tablename__ = "followups"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     ticket_id: uuid.UUID = Field(foreign_key="tickets.id")
 
-    user_id: str | None = None      # UUID de identidad
+    user_id: str | None = None      # identidad UUID
     user_name: str | None = None    # Display name
 
     comment: str
     is_public: bool = True
     is_staff: bool = False
-    new_status: str | None = None    # Si el followup cambia el estado del ticket
-    new_priority: str | None = None  # Si el followup cambia la prioridad del ticket
+    new_status: str | None = None    # If the followup changes the ticket status
+    new_priority: str | None = None  # If the followup changes the ticket priority
     mentions: list[str] = Field(default=[], sa_column=Column(JSON))
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_type=_TZ)
@@ -189,11 +189,11 @@ class FollowUp(SQLModel, table=True):
 
 
 # =============================================================================
-# Attachment (adjunto de followup)
+# Attachment (followup attachment)
 # =============================================================================
 
 class Attachment(SQLModel, table=True):
-    """Archivo adjunto a un followup o directamente a un ticket."""
+    """File attached to a followup or directly to a ticket."""
 
     __tablename__ = "attachments"
 
@@ -201,7 +201,7 @@ class Attachment(SQLModel, table=True):
     ticket_id: uuid.UUID = Field(foreign_key="tickets.id", index=True)
     followup_id: uuid.UUID | None = Field(default=None, foreign_key="followups.id")
     filename: str = Field(max_length=255)
-    storage_name: str = Field(max_length=300)  # nombre en disco: {ticket_short}/{uuid}.{ext}
+    storage_name: str = Field(max_length=300)  # on-disk name: {ticket_short}/{uuid}.{ext}
     mime_type: str | None = None
     size: int | None = None
     uploaded_by: str | None = Field(default=None, max_length=100)
@@ -212,11 +212,11 @@ class Attachment(SQLModel, table=True):
 
 
 # =============================================================================
-# TicketWatcher (visibilidad + notificaciones)
+# TicketWatcher (visibility + notifications)
 # =============================================================================
 
 class TicketWatcher(SQLModel, table=True):
-    """Usuario que sigue un ticket (creador, asignado, mencionado)."""
+    """User watching a ticket (creator, assignee, mentioned)."""
 
     __tablename__ = "ticket_watchers"
 
@@ -228,11 +228,11 @@ class TicketWatcher(SQLModel, table=True):
 
 
 # =============================================================================
-# TicketRelation (tickets relacionados, duplicados, bloqueos)
+# TicketRelation (related, duplicate, blocking tickets)
 # =============================================================================
 
 class TicketRelation(SQLModel, table=True):
-    """Relación entre dos tickets (related, duplicate, blocks/blocked_by)."""
+    """Relation between two tickets (related, duplicate, blocks/blocked_by)."""
 
     __tablename__ = "ticket_relations"
 
@@ -257,7 +257,7 @@ class NotificationType(str, enum.Enum):
 
 
 class Notification(SQLModel, table=True):
-    """Notificación para un usuario sobre actividad en un ticket."""
+    """Notification for a user about activity on a ticket."""
 
     __tablename__ = "notifications"
 

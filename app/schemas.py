@@ -113,7 +113,7 @@ class TokenData(CamelModel):
 
 
 # =============================================================================
-# Queue (Categoría)
+# Queue (category)
 # =============================================================================
 
 class QueueCreate(BaseModel):
@@ -169,7 +169,7 @@ class TicketCreate(CamelModel):
     due_date: datetime | None = None
     parent_id: uuid.UUID | None = None
     mentioned_user_ids: list[str] = Field(default_factory=list)
-    assigned_to: str | None = None  # username del responsable inicial
+    assigned_to: str | None = None  # username of the initial assignee
 
 
 class TicketUpdate(CamelModel):
@@ -184,7 +184,7 @@ class TicketUpdate(CamelModel):
 
 
 class TicketSummary(CamelModel):
-    """Versión resumida para listados."""
+    """Summary view for list endpoints."""
     id: uuid.UUID
     title: str
     status: str
@@ -202,7 +202,7 @@ class TicketSummary(CamelModel):
 
 
 class TicketResponse(CamelModel):
-    """Detalle completo del ticket."""
+    """Full ticket detail."""
     id: uuid.UUID
     title: str
     description: str

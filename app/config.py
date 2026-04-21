@@ -73,30 +73,30 @@ class Settings(BaseSettings):
     # =========================================================================
     # Identity Service
     # =========================================================================
-    # Server-to-server (red Docker interna)
+    # Server-to-server (internal Docker network)
     identity_service_url: str = "http://identity_api:8080/api/v1"
-    # URL externa (browser → Swagger UI tokenUrl)
+    # External URL (browser → Swagger UI tokenUrl)
     identity_external_url: str = "http://localhost:8080/identity/api/v1"
 
     @computed_field
     @property
     def identity_login_url(self) -> str:
-        """tokenUrl para Swagger UI — llamado desde el browser."""
+        """tokenUrl for Swagger UI — called from the browser."""
         return f"{self.identity_external_url}/login"
 
     @computed_field
     @property
     def identity_me_url(self) -> str:
-        """Endpoint /me para validación server-to-server."""
+        """/me endpoint for server-to-server validation."""
         return f"{self.identity_service_url.rstrip('/')}/me"
 
     @computed_field
     @property
     def identity_users_url(self) -> str:
-        """Listado de usuarios — en identidad el endpoint es GET /api/v1 (sin /users/)."""
+        """User listing — in identidad the endpoint is GET /api/v1 (without /users/)."""
         return f"{self.identity_service_url.rstrip('/')}/"
 
-    # Cuenta de servicio en identidad para llamadas autenticadas
+    # Service account in identidad for authenticated calls
     tickets_service_user: str = ""
     tickets_service_password: SecretStr = SecretStr("")
 

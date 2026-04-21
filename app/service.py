@@ -338,7 +338,7 @@ class TicketService:
 
         # Audit FollowUp
         old_label = STATUS_LABELS.get(str(old_status), str(old_status))
-        new_label = STATUS_LABELS.get(str(TicketStatus.CLOSED), "Cerrado")
+        new_label = STATUS_LABELS.get(str(TicketStatus.CLOSED), "Closed")
         await self.ticket_repo.add_followup(FollowUp(
             ticket_id=ticket_id,
             user_name=current_user.user_name,
@@ -431,8 +431,8 @@ class TicketService:
             ticket.status = TicketStatus.REOPENED
             await self.ticket_repo.update(ticket)
             # Audit trail for auto-reopen
-            old_label = STATUS_LABELS.get(str(TicketStatus.PENDING), "Pendiente")
-            new_label = STATUS_LABELS.get(str(TicketStatus.REOPENED), "Reabierto")
+            old_label = STATUS_LABELS.get(str(TicketStatus.PENDING), "Pending")
+            new_label = STATUS_LABELS.get(str(TicketStatus.REOPENED), "Reopened")
             await self.ticket_repo.add_followup(FollowUp(
                 ticket_id=ticket_id,
                 user_name=current_user.user_name,

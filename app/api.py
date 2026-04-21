@@ -110,7 +110,7 @@ async def me(current_user: CurrentUser):
 
 @router.get("/meta", tags=["Meta"])
 async def get_meta():
-    """Metadata de enums — fuente única de verdad para status y prioridad."""
+    """Enum metadata — single source of truth for status and priority."""
     return _build_meta()
 
 
@@ -464,7 +464,7 @@ async def my_tickets(
     filters: TicketFilterParams = Depends(get_ticket_filters),
     service: TicketService = Depends(get_ticket_service),
 ):
-    """Tickets del empleado — donde es watcher o submitter."""
+    """Employee's tickets — where they are watcher or submitter."""
     my_filters = TicketFilterParams(
         queue_id=filters.queue_id,
         status=filters.status,
@@ -498,14 +498,14 @@ async def create_my_ticket(
     current_user: CurrentUser,
     service: TicketService = Depends(get_ticket_service),
 ):
-    """Crear ticket desde el portal del empleado."""
+    """Create a ticket from the employee portal."""
     dispatcher = await _build_dispatcher(request)
     ticket = await service.create_ticket(data, current_user, dispatcher=dispatcher)
     return TicketResponse.model_validate(ticket)
 
 
 # =============================================================================
-# Portal — Notificaciones
+# Portal — Notifications
 # =============================================================================
 
 @router.get("/my/notifications/", tags=["Portal"])

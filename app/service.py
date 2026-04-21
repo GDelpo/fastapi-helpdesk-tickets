@@ -567,7 +567,7 @@ class TicketService:
         )
         relation = await self.ticket_repo.add_relation(relation)
 
-        # Crear relación inversa automática
+        # Automatically create the inverse relation
         inverse_type = {
             RelationType.RELATED: RelationType.RELATED,
             RelationType.DUPLICATE: RelationType.DUPLICATE,

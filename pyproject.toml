@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 100
+# Python of docker/Dockerfile (python:3.14-slim), the only image this repo builds.
+target-version = "py314"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# Long log messages and docstrings stay as they are; the formatter wraps code.
+# UP042: moving `(str, Enum)` to StrEnum changes str() output; not done blindly.
+ignore = ["E501", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# SQLModel resolves relationship targets from these strings; keep the quoted forward references.
+"app/models.py" = ["UP037"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependencies are declared as default arguments by design.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Form", "fastapi.File"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

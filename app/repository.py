@@ -5,12 +5,19 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import case, cast, func, or_, select, Text, update
+from sqlalchemy import Text, case, cast, func, or_, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models import (
-    Attachment, FollowUp, Notification, Queue, RelationType,
-    Ticket, TicketRelation, TicketStatus, TicketWatcher,
+    Attachment,
+    FollowUp,
+    Notification,
+    Queue,
+    RelationType,
+    Ticket,
+    TicketRelation,
+    TicketStatus,
+    TicketWatcher,
 )
 
 
@@ -62,22 +69,24 @@ class TicketRepository:
         self.session = session
 
     async def get_by_id(self, ticket_id: uuid.UUID, with_relations: bool = False) -> Ticket | None:
-        result = await self.session.execute(
-            select(Ticket).where(Ticket.id == ticket_id)
-        )
+        result = await self.session.execute(select(Ticket).where(Ticket.id == ticket_id))
         ticket = result.scalar_one_or_none()
         if ticket and with_relations:
             fu_result = await self.session.execute(
-                select(FollowUp).where(FollowUp.ticket_id == ticket_id).order_by(FollowUp.created_at)
+                select(FollowUp)
+                .where(FollowUp.ticket_id == ticket_id)
+                .order_by(FollowUp.created_at)
             )
-            # __dict__ evita el lazy loader de SQLAlchemy (MissingGreenlet en async)
+            # INTENTIONAL: __dict__ bypasses SQLAlchemy's lazy loader (MissingGreenlet in async)
             ticket.__dict__["followups"] = list(fu_result.scalars().all())
             watcher_result = await self.session.execute(
                 select(TicketWatcher).where(TicketWatcher.ticket_id == ticket_id)
             )
             ticket.__dict__["watchers"] = list(watcher_result.scalars().all())
             if ticket.queue_id:
-                q_result = await self.session.execute(select(Queue).where(Queue.id == ticket.queue_id))
+                q_result = await self.session.execute(
+                    select(Queue).where(Queue.id == ticket.queue_id)
+                )
                 q = q_result.scalar_one_or_none()
                 if q:
                     ticket.__dict__["queue_name"] = q.name
@@ -215,6 +224,9 @@ class TicketRepository:
         await self.session.refresh(followup)
         return followup
 
+    async def get_followup(self, followup_id: uuid.UUID) -> FollowUp | None:
+        return await self.session.get(FollowUp, followup_id)
+
     async def get_watcher(self, ticket_id: uuid.UUID, user_id: str) -> TicketWatcher | None:
         result = await self.session.execute(
             select(TicketWatcher).where(
@@ -273,7 +285,7 @@ class TicketRepository:
                 FollowUp.ticket_id,
                 func.max(FollowUp.created_at).label("last_staff_fu"),
             )
-            .where(FollowUp.is_staff == True)
+            .where(FollowUp.is_staff.is_(True))
             .group_by(FollowUp.ticket_id)
             .subquery()
         )
@@ -285,11 +297,11 @@ class TicketRepository:
                 Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS]),
                 Ticket.assigned_to.isnot(None),
                 or_(
-                    staff_fu_subq.c.last_staff_fu == None,
+                    staff_fu_subq.c.last_staff_fu.is_(None),
                     staff_fu_subq.c.last_staff_fu < staff_cutoff,
                 ),
                 or_(
-                    Ticket.last_staff_reminder_at == None,
+                    Ticket.last_staff_reminder_at.is_(None),
                     Ticket.last_staff_reminder_at < reminder_dedup_cutoff,
                 ),
             )
@@ -301,7 +313,7 @@ class TicketRepository:
                 FollowUp.ticket_id,
                 func.max(FollowUp.created_at).label("last_submitter_fu"),
             )
-            .where(FollowUp.is_staff == False)
+            .where(FollowUp.is_staff.is_(False))
             .group_by(FollowUp.ticket_id)
             .subquery()
         )
@@ -312,11 +324,11 @@ class TicketRepository:
             .where(
                 Ticket.status == TicketStatus.PENDING,
                 or_(
-                    submitter_fu_subq.c.last_submitter_fu == None,
+                    submitter_fu_subq.c.last_submitter_fu.is_(None),
                     submitter_fu_subq.c.last_submitter_fu < submitter_cutoff,
                 ),
                 or_(
-                    Ticket.last_submitter_reminder_at == None,
+                    Ticket.last_submitter_reminder_at.is_(None),
                     Ticket.last_submitter_reminder_at < reminder_dedup_cutoff,
                 ),
             )
@@ -365,7 +377,10 @@ class TicketRepository:
             await self.session.commit()
 
     async def remove_inverse_relation(
-        self, source_id: uuid.UUID, target_id: uuid.UUID, relation_type: str,
+        self,
+        source_id: uuid.UUID,
+        target_id: uuid.UUID,
+        relation_type: str,
     ) -> None:
         inverse_type = {
             RelationType.RELATED: RelationType.RELATED,
@@ -394,7 +409,9 @@ class TicketRepository:
         stmt = select(
             func.count().label("total"),
             func.sum(case((Ticket.status == TicketStatus.OPEN, 1), else_=0)).label("open"),
-            func.sum(case((Ticket.status == TicketStatus.IN_PROGRESS, 1), else_=0)).label("in_progress"),
+            func.sum(case((Ticket.status == TicketStatus.IN_PROGRESS, 1), else_=0)).label(
+                "in_progress"
+            ),
             func.sum(case((Ticket.status == TicketStatus.PENDING, 1), else_=0)).label("pending"),
             func.sum(case((Ticket.status == TicketStatus.REOPENED, 1), else_=0)).label("reopened"),
             func.sum(case((Ticket.status == TicketStatus.RESOLVED, 1), else_=0)).label("resolved"),
@@ -418,7 +435,9 @@ class TicketRepository:
         stmt = select(
             func.count().label("total"),
             func.sum(case((Ticket.status == TicketStatus.OPEN, 1), else_=0)).label("open"),
-            func.sum(case((Ticket.status == TicketStatus.IN_PROGRESS, 1), else_=0)).label("in_progress"),
+            func.sum(case((Ticket.status == TicketStatus.IN_PROGRESS, 1), else_=0)).label(
+                "in_progress"
+            ),
             func.sum(case((Ticket.status == TicketStatus.PENDING, 1), else_=0)).label("pending"),
             func.sum(case((Ticket.status == TicketStatus.REOPENED, 1), else_=0)).label("reopened"),
             func.sum(case((Ticket.status == TicketStatus.RESOLVED, 1), else_=0)).label("resolved"),
@@ -468,7 +487,9 @@ class NotificationRepository:
 
     async def count_unread(self, user_id: str) -> int:
         result = await self.session.execute(
-            select(func.count()).select_from(Notification).where(
+            select(func.count())
+            .select_from(Notification)
+            .where(
                 Notification.user_id == user_id,
                 Notification.is_read == False,  # noqa: E712
             )

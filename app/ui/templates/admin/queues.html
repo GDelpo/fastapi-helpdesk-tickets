@@ -114,19 +114,19 @@
     function rowActions(q) {
       if (!q.isActive) {
         return `
-          <button onclick="toggleQueue(${q.id}, true)" class="btn btn-ghost text-xs" title="Reactivate">
+          <button type="button" data-action="toggle-queue" data-queue-id="${esc(q.id)}" data-active="true" class="btn btn-ghost text-xs" title="Reactivate">
             <i data-lucide="eye" class="w-3.5 h-3.5"></i> Reactivate
           </button>
-          ${(q.ticketCount || 0) === 0 ? `<button onclick="deleteQueue(${q.id})" class="btn btn-danger text-xs" title="Delete">
+          ${(q.ticketCount || 0) === 0 ? `<button type="button" data-action="delete-queue" data-queue-id="${esc(q.id)}" class="btn btn-danger text-xs" title="Delete">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>` : ''}
         `;
       }
       return `
-        <button onclick="openQueueModal(${q.id})" class="btn btn-ghost text-xs" title="Edit">
+        <button type="button" data-action="edit-queue" data-queue-id="${esc(q.id)}" class="btn btn-ghost text-xs" title="Edit">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
-        <button onclick="toggleQueue(${q.id}, false)" class="btn btn-ghost text-xs" title="Deactivate">
+        <button type="button" data-action="toggle-queue" data-queue-id="${esc(q.id)}" data-active="false" class="btn btn-ghost text-xs" title="Deactivate">
           <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
         </button>
       `;
@@ -289,6 +289,16 @@
       showToast(err.message || 'Error deleting', 'error');
     }
   }
+
+  // Delegated row actions (ids travel in data-* attributes, not inline handlers).
+  document.getElementById('queues-tree').addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = el.dataset.queueId;
+    if (el.dataset.action === 'toggle-queue') toggleQueue(id, el.dataset.active === 'true');
+    else if (el.dataset.action === 'delete-queue') deleteQueue(id);
+    else if (el.dataset.action === 'edit-queue') openQueueModal(Number(id));
+  });
 
   loadQueues();
 </script>

@@ -1,11 +1,11 @@
 /**
- * constants.js — helpers que consumen APP_META inyectado por Jinja2.
+ * constants.js — helpers that consume APP_META injected by Jinja2.
  * APP_META = { statuses: [{value, label, order},...], priorities: [{value, label},...] }
- * Cargar DESPUÉS de que APP_META esté definido en el template base.
+ * Load AFTER APP_META is defined in the base template.
  */
 
 (function () {
-  // Índices para acceso O(1)
+  // Indexes for O(1) lookup
   const _statusByValue = {};
   const _priorityByValue = {};
 
@@ -32,8 +32,8 @@
   window.statusBadge = function (s) {
     const meta = _statusByValue[s];
     const cls = STATUS_BADGE_CLASS[s] || 'badge-closed';
-    const label = meta ? meta.label : (s || 'Desconocido');
-    return `<span class="badge ${cls}">${label}</span>`;
+    const label = meta ? meta.label : (s || 'Unknown');
+    return `<span class="badge ${esc(cls)}">${esc(label)}</span>`;
   };
 
   window.priorityBadge = function (p) {
@@ -41,15 +41,15 @@
     const meta = _priorityByValue[key];
     const cls = PRIORITY_BADGE_CLASS[key] || 'badge-normal';
     const label = meta ? meta.label : key;
-    return `<span class="badge ${cls}">${label}</span>`;
+    return `<span class="badge ${esc(cls)}">${esc(label)}</span>`;
   };
 
   /**
-   * Genera options HTML para un <select> de estados.
-   * @param {string} placeholder - Texto de la opción vacía
-   * @param {string[]} [exclude] - Values a excluir (ej: ['closed'])
+   * Builds the HTML options of a status <select>.
+   * @param {string} placeholder - Text of the empty option
+   * @param {string[]} [exclude] - Values to exclude (e.g. ['closed'])
    */
-  window.buildStatusOptions = function (placeholder = 'Todos los estados', exclude = []) {
+  window.buildStatusOptions = function (placeholder = 'All statuses', exclude = []) {
     const excludeSet = new Set(exclude);
     const sorted = [...APP_META.statuses]
       .filter(s => !excludeSet.has(s.value))
@@ -58,34 +58,34 @@
       sorted.map(s => `<option value="${s.value}">${s.label}</option>`).join('');
   };
 
-  window.buildPriorityOptions = function (placeholder = 'Todas las prioridades') {
+  window.buildPriorityOptions = function (placeholder = 'All priorities') {
     const emptyOpt = placeholder ? `<option value="">${placeholder}</option>` : '';
     return emptyOpt + APP_META.priorities.map(p => `<option value="${p.value}">${p.label}</option>`).join('');
   };
 
-  /** Retorna el label legible de un status value */
+  /** Returns the human-readable label of a status value */
   window.statusLabel = function (s) {
     return (_statusByValue[s] || {}).label || s;
   };
 
-  /** Retorna el label legible de una priority value */
+  /** Returns the human-readable label of a priority value */
   window.priorityLabel = function (p) {
     return (_priorityByValue[String(p)] || {}).label || String(p);
   };
 
-  /** Constantes de agrupación para portals */
+  /** Grouping constants for the portal */
   window.ACTIVE_STATUSES   = ['open', 'in_progress', 'pending', 'reopened'];
   window.ARCHIVED_STATUSES = ['resolved', 'closed'];
 
-  /** Retorna el order numérico de un status (para sort) */
+  /** Returns the numeric order of a status (for sorting) */
   window.statusOrder = function (s) {
     return (_statusByValue[s] || {}).order || 99;
   };
 })();
 
-// ── Users cache (compartido por mentions.js y ticket-form.js) ─────────────
-// Carga todos los empleados activos una vez y filtra localmente.
-// Se refresca automáticamente cada 5 minutos.
+// ── Users cache (shared by mentions.js and ticket-form.js) ────────────────
+// Loads every active employee once and filters locally.
+// Refreshed automatically every 5 minutes.
 (function () {
   let _cache = null;
   let _cacheTs = 0;

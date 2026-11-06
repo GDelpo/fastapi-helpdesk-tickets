@@ -6,6 +6,7 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends, Query, Request
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -19,14 +20,13 @@ from app.service import TicketService
 
 logger = get_logger(__name__)
 
-from fastapi.security import OAuth2PasswordBearer
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=settings.identity_login_url)
 
 
 # =============================================================================
 # HTTP client
 # =============================================================================
+
 
 def get_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
@@ -35,6 +35,7 @@ def get_http_client(request: Request) -> httpx.AsyncClient:
 # =============================================================================
 # Authentication
 # =============================================================================
+
 
 async def get_current_user(
     request: Request,
@@ -56,15 +57,16 @@ async def get_current_user(
                 role=data["role"],
             )
         raise AuthenticationError("Invalid or expired token")
-    except httpx.ConnectTimeout:
-        raise ExternalServiceError("Identity", "Connection timeout")
-    except httpx.ConnectError:
-        raise ExternalServiceError("Identity", "Service unavailable")
+    except httpx.ConnectTimeout as e:
+        raise ExternalServiceError("Identity", "Connection timeout") from e
+    except httpx.ConnectError as e:
+        raise ExternalServiceError("Identity", "Service unavailable") from e
     except AuthenticationError:
         raise
     except Exception as e:
-        logger.error("Identity service error: %s", e)
-        raise AuthenticationError(str(e))
+        # The detail stays in the log; the client only gets a generic message.
+        logger.exception("Identity service error while validating a token")
+        raise AuthenticationError("Could not validate credentials") from e
 
 
 async def admin_required(
@@ -83,6 +85,7 @@ AdminUser = Annotated[TokenData, Depends(admin_required)]
 # =============================================================================
 # Repositories and Services
 # =============================================================================
+
 
 async def get_ticket_repository(
     session: AsyncSession = Depends(get_session),
@@ -114,6 +117,7 @@ async def get_ticket_service(
 # Pagination
 # =============================================================================
 
+
 class PaginationParams(BaseModel):
     skip: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=200)
@@ -134,10 +138,15 @@ def get_pagination_params(
 # Ticket filter params
 # =============================================================================
 
+
 def get_ticket_filters(
     queue_id: Annotated[int | None, Query(description="Filter by category")] = None,
-    status: Annotated[str | None, Query(description="open|in_progress|pending|reopened|resolved|closed")] = None,
-    priority: Annotated[int | None, Query(ge=1, le=5, description="1=Critical … 5=Very low")] = None,
+    status: Annotated[
+        str | None, Query(description="open|in_progress|pending|reopened|resolved|closed")
+    ] = None,
+    priority: Annotated[
+        int | None, Query(ge=1, le=5, description="1=Critical … 5=Very low")
+    ] = None,
     assigned_to: Annotated[str | None, Query(description="Username of the assigned agent")] = None,
     search: Annotated[str | None, Query(description="Search in title or by UUID prefix")] = None,
     include_closed: Annotated[bool, Query(description="Include closed tickets")] = False,

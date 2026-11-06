@@ -1,30 +1,30 @@
 #!/bin/sh
 set -e
 
-echo "Iniciando Tickets Service..."
+echo "Starting Tickets Service..."
 
-# Esperar PostgreSQL
-echo "Esperando base de datos en ${DB_HOST:-localhost}:${DB_PORT:-5432}..."
+# Wait for PostgreSQL
+echo "Waiting for database at ${DB_HOST:-localhost}:${DB_PORT:-5432}..."
 retries=0
 while ! nc -z "${DB_HOST:-localhost}" "${DB_PORT:-5432}"; do
     retries=$((retries+1))
     if [ "$retries" -ge 30 ]; then
-        echo "Base de datos no disponible después de 30 intentos"
+        echo "Database not available after 30 attempts"
         exit 1
     fi
-    echo "Intento $retries/30..."
+    echo "Attempt $retries/30..."
     sleep 2
 done
-echo "Base de datos disponible"
+echo "Database available"
 
-# Aplicar migraciones Alembic
-# PYTHONPATH se desactiva para evitar que /app/alembic/ tape al paquete alembic del venv
-echo "Aplicando migraciones..."
+# Apply Alembic migrations
+# INTENTIONAL: PYTHONPATH is unset so /app/alembic/ does not shadow the venv's alembic package
+echo "Applying migrations..."
 env -u PYTHONPATH alembic upgrade head
-echo "Migraciones completadas"
+echo "Migrations complete"
 
-# Iniciar servidor
-echo "Iniciando servidor..."
+# Start the server
+echo "Starting server..."
 exec gunicorn app.main:app \
     --workers "${UVICORN_WORKERS:-2}" \
     --worker-class uvicorn.workers.UvicornWorker \

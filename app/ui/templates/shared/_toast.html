@@ -20,9 +20,12 @@ function showToast(message, type = 'info', duration = 4500) {
   item.className = `toast-item toast-${type}`;
   item.innerHTML = `
     <i class="fa-solid ${icons[type]||'fa-info-circle'} flex-shrink-0 mt-0.5 ${colors[type]||'text-blue-500'}"></i>
-    <div class="flex-1 text-sm text-gray-700 leading-snug">${message}</div>
-    <button onclick="this.closest('.toast-item').remove()"
+    <div class="flex-1 text-sm text-gray-700 leading-snug" data-toast-message></div>
+    <button type="button" data-toast-close
             class="text-gray-300 hover:text-gray-500 flex-shrink-0 ml-1 transition-colors text-xs">✕</button>`;
+  // Messages often carry server errors or file names: always plain text, never HTML.
+  item.querySelector('[data-toast-message]').textContent = message;
+  item.querySelector('[data-toast-close]').addEventListener('click', () => item.remove());
   container.appendChild(item);
   setTimeout(() => {
     item.style.animation = 'toastOut .25s ease forwards';

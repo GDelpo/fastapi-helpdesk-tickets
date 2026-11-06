@@ -9,12 +9,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import RelationType, TicketPriority, TicketStatus
-
+from app.models import TicketPriority
 
 # =============================================================================
 # Base with camelCase
 # =============================================================================
+
 
 def to_camel(string: str) -> str:
     components = string.split("_")
@@ -32,6 +32,7 @@ class CamelModel(BaseModel):
 # =============================================================================
 # Health / Error
 # =============================================================================
+
 
 class ServiceStatus(str, Enum):
     HEALTHY = "healthy"
@@ -62,6 +63,7 @@ class ErrorResponse(CamelModel):
 # Pagination
 # =============================================================================
 
+
 class PaginationMeta(CamelModel):
     total: int
     page: int
@@ -75,8 +77,12 @@ class PaginationMeta(CamelModel):
         page = (skip // limit) + 1 if limit > 0 else 1
         total_pages = (total + limit - 1) // limit if limit > 0 else 1
         return cls(
-            total=total, page=page, page_size=limit, total_pages=total_pages,
-            has_next=skip + limit < total, has_previous=skip > 0,
+            total=total,
+            page=page,
+            page_size=limit,
+            total_pages=total_pages,
+            has_next=skip + limit < total,
+            has_previous=skip > 0,
         )
 
 
@@ -99,6 +105,7 @@ class StatsResponse(CamelModel):
 # Auth
 # =============================================================================
 
+
 class LoginResponse(CamelModel):
     access_token: str
     token_type: str = "bearer"
@@ -115,6 +122,7 @@ class TokenData(CamelModel):
 # =============================================================================
 # Queue (category)
 # =============================================================================
+
 
 class QueueCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
@@ -160,6 +168,7 @@ class QueueResponse(CamelModel):
 # Ticket
 # =============================================================================
 
+
 class TicketCreate(CamelModel):
     queue_id: int
     title: str = Field(min_length=1, max_length=200)
@@ -185,6 +194,7 @@ class TicketUpdate(CamelModel):
 
 class TicketSummary(CamelModel):
     """Summary view for list endpoints."""
+
     id: uuid.UUID
     title: str
     status: str
@@ -203,6 +213,7 @@ class TicketSummary(CamelModel):
 
 class TicketResponse(CamelModel):
     """Full ticket detail."""
+
     id: uuid.UUID
     title: str
     description: str
@@ -230,6 +241,7 @@ class TicketResponse(CamelModel):
 # FollowUp
 # =============================================================================
 
+
 class FollowUpCreate(CamelModel):
     comment: str = Field(min_length=1)
     is_public: bool = True
@@ -255,6 +267,7 @@ class FollowUpResponse(CamelModel):
 # Watcher
 # =============================================================================
 
+
 class WatcherResponse(CamelModel):
     ticket_id: uuid.UUID
     user_id: str
@@ -264,6 +277,7 @@ class WatcherResponse(CamelModel):
 # =============================================================================
 # Identity User (proxy from identity)
 # =============================================================================
+
 
 class IdentityUserSummary(CamelModel):
     id: str
@@ -277,6 +291,7 @@ class IdentityUserSummary(CamelModel):
 # Filter params
 # =============================================================================
 
+
 class TicketFilterParams(BaseModel):
     queue_id: int | None = None
     status: str | None = None
@@ -289,6 +304,7 @@ class TicketFilterParams(BaseModel):
 # =============================================================================
 # Attachments
 # =============================================================================
+
 
 class AttachmentResponse(CamelModel):
     id: uuid.UUID
@@ -304,6 +320,7 @@ class AttachmentResponse(CamelModel):
 # =============================================================================
 # Ticket Relations
 # =============================================================================
+
 
 class TicketRelationCreate(CamelModel):
     target_ticket_id: uuid.UUID
@@ -325,6 +342,7 @@ class TicketRelationResponse(CamelModel):
 # Bulk operations
 # =============================================================================
 
+
 class BulkStatusUpdate(CamelModel):
     ids: list[uuid.UUID]
     status: str
@@ -333,6 +351,7 @@ class BulkStatusUpdate(CamelModel):
 # =============================================================================
 # Notification
 # =============================================================================
+
 
 class NotificationResponse(CamelModel):
     id: uuid.UUID
@@ -346,6 +365,7 @@ class NotificationResponse(CamelModel):
 # =============================================================================
 # Reminders
 # =============================================================================
+
 
 class ReminderResult(BaseModel):
     staff: int = 0

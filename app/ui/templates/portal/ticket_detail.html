@@ -294,7 +294,7 @@
     showToast('Form cleared.', 'info');
   }
 
-  /** Escapa HTML y luego convierte @usuario en badges azules inline. */
+  /** Escapes HTML, then turns @user into inline blue badges. */
   function markupMentions(rawText) {
     return esc(rawText).replace(/@([\w.]+)/g,
       '<span class="mention-inline">@$1</span>');
@@ -424,7 +424,7 @@
       // User comments → full card
       const isStaff = f.isStaff === true;
       const name = isStaff ? esc(f.userName || '—') : 'You';
-      const initials = (f.userName || '?').slice(0, 1).toUpperCase();
+      const initials = esc((f.userName || '?').slice(0, 1).toUpperCase());
       const avatarBg = isStaff ? '#2563eb' : '#64748b';
       const staffBadge = isStaff
         ? `<span class="ml-1.5 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">Owner</span>`
@@ -459,7 +459,7 @@
     });
     if (resp && resp.ok) {
       const statusNames = { resolved: 'Resolved', reopened: 'Reopened' };
-      showToast(`Ticket marked as <strong>${statusNames[newStatus] || newStatus}</strong>.`,
+      showToast(`Ticket marked as ${statusNames[newStatus] || newStatus}.`,
                 newStatus === 'resolved' ? 'success' : 'warning');
       loadTicket();
     } else {
@@ -534,15 +534,15 @@
       const statusHtml = r.targetStatus ? statusBadge(r.targetStatus) : '';
       return `
         <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-t border-gray-100 first:border-t-0">
-          <i class="fas ${meta.icon} ${meta.color} text-xs flex-shrink-0 w-4 text-center"></i>
-          <span class="text-xs text-gray-400 w-28 flex-shrink-0">${meta.label}</span>
-          <a href="${BASE}/portal/tickets/${r.targetTicketId}"
+          <i class="fas ${esc(meta.icon)} ${esc(meta.color)} text-xs flex-shrink-0 w-4 text-center"></i>
+          <span class="text-xs text-gray-400 w-28 flex-shrink-0">${esc(meta.label)}</span>
+          <a href="${BASE}/portal/tickets/${encodeURIComponent(r.targetTicketId)}"
              class="flex items-center gap-2 flex-1 min-w-0 no-underline group">
             <span class="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">${esc(targetId)}</span>
             <span class="text-sm text-gray-700 group-hover:text-blue-600 transition-colors truncate">${esc(r.targetTitle || '—')}</span>
             ${statusHtml}
           </a>
-          <button onclick="deleteRelation('${r.id}')"
+          <button type="button" data-action="delete-relation" data-relation-id="${esc(r.id)}"
                   class="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 ml-1 p-1">
             <i class="fas fa-times text-xs"></i>
           </button>
@@ -575,9 +575,9 @@
       if (!tickets.length) { suggestions.classList.add('hidden'); return; }
       suggestions.innerHTML = tickets.map(t => `
         <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0"
-             onclick="selectRelationTicket('${t.id}', ${JSON.stringify(esc(t.title))})">
+             data-action="select-relation" data-ticket-id="${esc(t.id)}" data-title="${esc(t.title)}">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">${t.id.substring(0, 8)}</span>
+            <span class="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">${esc(t.id.substring(0, 8))}</span>
             ${statusBadge(t.status)}
             <span class="text-xs text-gray-700 truncate">${esc(t.title)}</span>
           </div>
@@ -789,7 +789,8 @@
 
   function renderAttachmentWithDelete(a) {
     const deleteBtn = canDeleteAttachment(a)
-      ? `<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})"
+      ? `<button type="button" data-action="delete-attachment" data-ticket-id="${esc(a.ticketId)}"
+           data-attachment-id="${esc(a.id)}" data-filename="${esc(a.filename)}"
            class="btn btn-ghost p-1 text-xs" style="color:#ef4444;" title="Delete attachment">
            <i class="fas fa-trash text-xs"></i>
          </button>`
@@ -810,6 +811,16 @@
       showToast(err.message || 'Error deleting attachment', 'error');
     }
   }
+
+  // Delegated handlers for buttons rendered from API data (no inline on* handlers with values).
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const d = el.dataset;
+    if (d.action === 'delete-attachment') deleteAttachment(d.ticketId, d.attachmentId, d.filename);
+    else if (d.action === 'delete-relation') deleteRelation(d.relationId);
+    else if (d.action === 'select-relation') selectRelationTicket(d.ticketId, d.title);
+  });
 
   loadTicket();
 </script>

@@ -4,19 +4,34 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from app.exceptions import AuthorizationError, EntityNotFoundError
 from app.models import (
-    FollowUp, Notification, NotificationType, PRIORITY_LABELS, Queue, RelationType,
-    STATUS_LABELS, Ticket, TicketRelation, TicketStatus, TicketWatcher,
-)
-from app.repository import NotificationRepository, QueueRepository, TicketRepository
-from app.schemas import (
-    FollowUpCreate, QueueCreate, QueueUpdate,
-    TicketCreate, TicketFilterParams, TicketRelationCreate, TicketUpdate, TokenData,
+    PRIORITY_LABELS,
+    STATUS_LABELS,
+    FollowUp,
+    Notification,
+    NotificationType,
+    Queue,
+    RelationType,
+    Ticket,
+    TicketRelation,
+    TicketStatus,
+    TicketWatcher,
 )
 from app.notifications import NotificationDispatcher
+from app.repository import NotificationRepository, QueueRepository, TicketRepository
+from app.schemas import (
+    FollowUpCreate,
+    QueueCreate,
+    QueueUpdate,
+    TicketCreate,
+    TicketFilterParams,
+    TicketRelationCreate,
+    TicketUpdate,
+    TokenData,
+)
 
 _MENTION_RE = re.compile(r"@([\w.]+)")
 
@@ -41,12 +56,17 @@ class QueueService:
     async def create_queue(self, data: QueueCreate, current_user: TokenData) -> Queue:
         existing = await self.repo.get_by_slug(data.slug)
         from app.exceptions import EntityAlreadyExistsError
+
         if existing:
             raise EntityAlreadyExistsError("Queue", data.slug)
-        queue = Queue(name=data.name, slug=data.slug, description=data.description, email=data.email)
+        queue = Queue(
+            name=data.name, slug=data.slug, description=data.description, email=data.email
+        )
         return await self.repo.create(queue)
 
-    async def update_queue(self, queue_id: int, data: QueueUpdate, current_user: TokenData) -> Queue:
+    async def update_queue(
+        self, queue_id: int, data: QueueUpdate, current_user: TokenData
+    ) -> Queue:
         queue = await self.repo.get_by_id(queue_id)
         if not queue:
             raise EntityNotFoundError("Queue", queue_id)
@@ -61,6 +81,7 @@ class QueueService:
         count = await self.repo.count_tickets(queue_id)
         if count > 0:
             from app.exceptions import ValidationError
+
             raise ValidationError(f"Cannot delete: the category has {count} active tickets")
         await self.repo.delete(queue)
 
@@ -78,6 +99,15 @@ class TicketService:
 
     def _is_admin(self, user: TokenData) -> bool:
         return user.role in ("admin", "service")
+
+    async def _ensure_ticket_access(
+        self, ticket: Ticket, current_user: TokenData, message: str
+    ) -> None:
+        """Admins see everything; anyone else must be the submitter or a watcher."""
+        if self._is_admin(current_user) or ticket.submitter_username == current_user.user_name:
+            return
+        if not await self.ticket_repo.get_watcher(ticket.id, current_user.user_name):
+            raise AuthorizationError(message)
 
     async def list_tickets(
         self,
@@ -164,12 +194,14 @@ class TicketService:
             ticket = await self.ticket_repo.update(ticket)
             await self._ensure_watcher(ticket.id, data.assigned_to)
             if self.notif_repo:
-                await self.notif_repo.create(Notification(
-                    user_id=data.assigned_to,
-                    ticket_id=ticket.id,
-                    type=NotificationType.NEW_TICKET,
-                    content=f"You were assigned the ticket: {ticket.title}",
-                ))
+                await self.notif_repo.create(
+                    Notification(
+                        user_id=data.assigned_to,
+                        ticket_id=ticket.id,
+                        type=NotificationType.NEW_TICKET,
+                        content=f"You were assigned the ticket: {ticket.title}",
+                    )
+                )
 
         # Mentions: union of explicit list + @mentions parsed from description text
         description_mentions = list(set(_MENTION_RE.findall(data.description)))
@@ -181,21 +213,25 @@ class TicketService:
                 continue  # already notified as assignee above
             await self._ensure_watcher(ticket.id, username)
             if self.notif_repo:
-                await self.notif_repo.create(Notification(
-                    user_id=username,
-                    ticket_id=ticket.id,
-                    type=NotificationType.MENTION,
-                    content=f"You were mentioned in: {ticket.title}",
-                ))
+                await self.notif_repo.create(
+                    Notification(
+                        user_id=username,
+                        ticket_id=ticket.id,
+                        type=NotificationType.MENTION,
+                        content=f"You were mentioned in: {ticket.title}",
+                    )
+                )
 
         # In-app notification to default agent (if queue has one)
         if queue.assigned_to_id and self.notif_repo:
-            await self.notif_repo.create(Notification(
-                user_id=queue.assigned_to_id,
-                ticket_id=ticket.id,
-                type=NotificationType.NEW_TICKET,
-                content=f"New ticket: {ticket.title}",
-            ))
+            await self.notif_repo.create(
+                Notification(
+                    user_id=queue.assigned_to_id,
+                    ticket_id=ticket.id,
+                    type=NotificationType.NEW_TICKET,
+                    content=f"New ticket: {ticket.title}",
+                )
+            )
 
         # Email notifications
         if dispatcher:
@@ -234,8 +270,10 @@ class TicketService:
                 allowed.add("status")
             # Allow submitter or current assignee to reassign
             if "assigned_to" in update_fields:
-                if (ticket.submitter_username == current_user.user_name or
-                        ticket.assigned_to == current_user.user_name):
+                if (
+                    ticket.submitter_username == current_user.user_name
+                    or ticket.assigned_to == current_user.user_name
+                ):
                     allowed.add("assigned_to")
             restricted = set(update_fields.keys()) - allowed
             if restricted:
@@ -249,37 +287,44 @@ class TicketService:
             new_assignee = update_fields["assigned_to"]
             await self._ensure_watcher(ticket_id, new_assignee)
             if self.notif_repo:
-                await self.notif_repo.create(Notification(
-                    user_id=new_assignee,
-                    ticket_id=ticket.id,
-                    type=NotificationType.NEW_TICKET,
-                    content=f"You were assigned the ticket: {ticket.title}",
-                ))
+                await self.notif_repo.create(
+                    Notification(
+                        user_id=new_assignee,
+                        ticket_id=ticket.id,
+                        type=NotificationType.NEW_TICKET,
+                        content=f"You were assigned the ticket: {ticket.title}",
+                    )
+                )
             if dispatcher:
                 q = await self.queue_repo.get_by_id(ticket.queue_id)
-                await dispatcher.ticket_assigned(ticket, q, new_assignee,
-                                                 reassigned_by=current_user.user_name)
-            await self.ticket_repo.add_followup(FollowUp(
-                ticket_id=ticket_id,
-                user_name=current_user.user_name,
-                comment=f"Owner assigned: @{new_assignee} by @{current_user.user_name}.",
-                is_public=True,
-                is_staff=True,
-            ))
+                await dispatcher.ticket_assigned(
+                    ticket, q, new_assignee, reassigned_by=current_user.user_name
+                )
+            await self.ticket_repo.add_followup(
+                FollowUp(
+                    ticket_id=ticket_id,
+                    user_name=current_user.user_name,
+                    comment=f"Owner assigned: @{new_assignee} by @{current_user.user_name}.",
+                    is_public=True,
+                    is_staff=True,
+                )
+            )
 
         # Priority change audit trail
         new_priority = update_fields.get("priority")
         if new_priority is not None and new_priority != old_priority:
             old_pri_label = PRIORITY_LABELS.get(str(old_priority), str(old_priority))
             new_pri_label = PRIORITY_LABELS.get(str(new_priority), str(new_priority))
-            await self.ticket_repo.add_followup(FollowUp(
-                ticket_id=ticket_id,
-                user_name=current_user.user_name,
-                comment=f"Priority changed from «{old_pri_label}» to «{new_pri_label}» by @{current_user.user_name}.",
-                is_public=True,
-                is_staff=True,
-                new_priority=str(new_priority),
-            ))
+            await self.ticket_repo.add_followup(
+                FollowUp(
+                    ticket_id=ticket_id,
+                    user_name=current_user.user_name,
+                    comment=f"Priority changed from «{old_pri_label}» to «{new_pri_label}» by @{current_user.user_name}.",
+                    is_public=True,
+                    is_staff=True,
+                    new_priority=str(new_priority),
+                )
+            )
 
         # Notify + audit trail on status change
         new_status = update_fields.get("status")
@@ -288,35 +333,41 @@ class TicketService:
                 watchers = await self.ticket_repo.get_watchers(ticket_id)
                 for w in watchers:
                     if w.user_id != current_user.user_name:
-                        await self.notif_repo.create(Notification(
-                            user_id=w.user_id,
-                            ticket_id=ticket.id,
-                            type=NotificationType.STATUS_CHANGE,
-                            content=f"Status changed to {new_status}: {ticket.title}",
-                        ))
+                        await self.notif_repo.create(
+                            Notification(
+                                user_id=w.user_id,
+                                ticket_id=ticket.id,
+                                type=NotificationType.STATUS_CHANGE,
+                                content=f"Status changed to {new_status}: {ticket.title}",
+                            )
+                        )
             if dispatcher:
                 await dispatcher.ticket_status_changed(ticket, new_status)
             old_label = STATUS_LABELS.get(str(old_status), str(old_status))
             new_label = STATUS_LABELS.get(str(new_status), str(new_status))
-            await self.ticket_repo.add_followup(FollowUp(
-                ticket_id=ticket_id,
-                user_name=current_user.user_name,
-                comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
-                is_public=True,
-                is_staff=True,
-                new_status=str(new_status),
-            ))
+            await self.ticket_repo.add_followup(
+                FollowUp(
+                    ticket_id=ticket_id,
+                    user_name=current_user.user_name,
+                    comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
+                    is_public=True,
+                    is_staff=True,
+                    new_status=str(new_status),
+                )
+            )
 
         # Resolution change audit trail
         new_resolution = update_fields.get("resolution")
         if "resolution" in update_fields and new_resolution:
-            await self.ticket_repo.add_followup(FollowUp(
-                ticket_id=ticket_id,
-                user_name=current_user.user_name,
-                comment=f"Resolution recorded by @{current_user.user_name}.",
-                is_public=True,
-                is_staff=True,
-            ))
+            await self.ticket_repo.add_followup(
+                FollowUp(
+                    ticket_id=ticket_id,
+                    user_name=current_user.user_name,
+                    comment=f"Resolution recorded by @{current_user.user_name}.",
+                    is_public=True,
+                    is_staff=True,
+                )
+            )
 
         self._populate_defaults(ticket)
         return ticket
@@ -339,26 +390,30 @@ class TicketService:
         # Audit FollowUp
         old_label = STATUS_LABELS.get(str(old_status), str(old_status))
         new_label = STATUS_LABELS.get(str(TicketStatus.CLOSED), "Closed")
-        await self.ticket_repo.add_followup(FollowUp(
-            ticket_id=ticket_id,
-            user_name=current_user.user_name,
-            comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
-            is_public=True,
-            is_staff=True,
-            new_status=str(TicketStatus.CLOSED),
-        ))
+        await self.ticket_repo.add_followup(
+            FollowUp(
+                ticket_id=ticket_id,
+                user_name=current_user.user_name,
+                comment=f"Status changed from «{old_label}» to «{new_label}» by @{current_user.user_name}.",
+                is_public=True,
+                is_staff=True,
+                new_status=str(TicketStatus.CLOSED),
+            )
+        )
 
         # In-app notification for watchers
         if self.notif_repo:
             watchers = await self.ticket_repo.get_watchers(ticket_id)
             for w in watchers:
                 if w.user_id != current_user.user_name:
-                    await self.notif_repo.create(Notification(
-                        user_id=w.user_id,
-                        ticket_id=ticket.id,
-                        type=NotificationType.STATUS_CHANGE,
-                        content=f"Ticket closed: {ticket.title}",
-                    ))
+                    await self.notif_repo.create(
+                        Notification(
+                            user_id=w.user_id,
+                            ticket_id=ticket.id,
+                            type=NotificationType.STATUS_CHANGE,
+                            content=f"Ticket closed: {ticket.title}",
+                        )
+                    )
 
         # Email notification — ticket_status_changed only sends for "resolved"; close is
         # admin-only and intentionally does not trigger the resolved email.
@@ -398,13 +453,15 @@ class TicketService:
         await self.ticket_repo.delete_attachment(attachment)
         await delete_attachment_file(storage_name)
 
-        await self.ticket_repo.add_followup(FollowUp(
-            ticket_id=ticket_id,
-            user_name=current_user.user_name,
-            comment=f"Attachment '{filename}' deleted by @{current_user.user_name}.",
-            is_public=True,
-            is_staff=True,
-        ))
+        await self.ticket_repo.add_followup(
+            FollowUp(
+                ticket_id=ticket_id,
+                user_name=current_user.user_name,
+                comment=f"Attachment '{filename}' deleted by @{current_user.user_name}.",
+                is_public=True,
+                is_staff=True,
+            )
+        )
 
     async def add_followup(
         self,
@@ -433,24 +490,28 @@ class TicketService:
             # Audit trail for auto-reopen
             old_label = STATUS_LABELS.get(str(TicketStatus.PENDING), "Pending")
             new_label = STATUS_LABELS.get(str(TicketStatus.REOPENED), "Reopened")
-            await self.ticket_repo.add_followup(FollowUp(
-                ticket_id=ticket_id,
-                user_name=current_user.user_name,
-                comment=f"Status changed from «{old_label}» to «{new_label}».",
-                is_public=True,
-                is_staff=False,
-                new_status=str(TicketStatus.REOPENED),
-            ))
+            await self.ticket_repo.add_followup(
+                FollowUp(
+                    ticket_id=ticket_id,
+                    user_name=current_user.user_name,
+                    comment=f"Status changed from «{old_label}» to «{new_label}».",
+                    is_public=True,
+                    is_staff=False,
+                    new_status=str(TicketStatus.REOPENED),
+                )
+            )
             if self.notif_repo:
                 watchers = await self.ticket_repo.get_watchers(ticket_id)
                 for w in watchers:
                     if w.user_id != current_user.user_name:
-                        await self.notif_repo.create(Notification(
-                            user_id=w.user_id,
-                            ticket_id=ticket.id,
-                            type=NotificationType.STATUS_CHANGE,
-                            content=f"Ticket reopened by submitter: {ticket.title}",
-                        ))
+                        await self.notif_repo.create(
+                            Notification(
+                                user_id=w.user_id,
+                                ticket_id=ticket.id,
+                                type=NotificationType.STATUS_CHANGE,
+                                content=f"Ticket reopened by submitter: {ticket.title}",
+                            )
+                        )
 
         # Parse @mentions from comment
         mentioned_usernames = list(set(_MENTION_RE.findall(data.comment)))
@@ -477,12 +538,14 @@ class TicketService:
         for username in mentioned_usernames:
             await self._ensure_watcher(ticket_id, username)
             if self.notif_repo:
-                await self.notif_repo.create(Notification(
-                    user_id=username,
-                    ticket_id=ticket.id,
-                    type=NotificationType.MENTION,
-                    content=f"You were mentioned in: {ticket.title}",
-                ))
+                await self.notif_repo.create(
+                    Notification(
+                        user_id=username,
+                        ticket_id=ticket.id,
+                        type=NotificationType.MENTION,
+                        content=f"You were mentioned in: {ticket.title}",
+                    )
+                )
 
         # REPLY notifications
         if self.notif_repo:
@@ -491,43 +554,51 @@ class TicketService:
                 watchers = await self.ticket_repo.get_watchers(ticket_id)
                 for w in watchers:
                     if w.user_id != current_user.user_name:
-                        await self.notif_repo.create(Notification(
-                            user_id=w.user_id,
-                            ticket_id=ticket.id,
-                            type=NotificationType.REPLY,
-                            content=f"Support reply on: {ticket.title}",
-                        ))
+                        await self.notif_repo.create(
+                            Notification(
+                                user_id=w.user_id,
+                                ticket_id=ticket.id,
+                                type=NotificationType.REPLY,
+                                content=f"Support reply on: {ticket.title}",
+                            )
+                        )
             else:
                 # Employee reply → notify assigned agent only (in-app)
                 if ticket.assigned_to:
-                    await self.notif_repo.create(Notification(
-                        user_id=ticket.assigned_to,
-                        ticket_id=ticket.id,
-                        type=NotificationType.REPLY,
-                        content=f"New reply from submitter on: {ticket.title}",
-                    ))
+                    await self.notif_repo.create(
+                        Notification(
+                            user_id=ticket.assigned_to,
+                            ticket_id=ticket.id,
+                            type=NotificationType.REPLY,
+                            content=f"New reply from submitter on: {ticket.title}",
+                        )
+                    )
 
         # PENDING_WAITING notification
         if data.new_status == TicketStatus.PENDING and self.notif_repo:
             if ticket.submitter_username:
-                await self.notif_repo.create(Notification(
-                    user_id=ticket.submitter_username,
-                    ticket_id=ticket.id,
-                    type=NotificationType.PENDING_WAITING,
-                    content=f"Your ticket is waiting for your reply: {ticket.title}",
-                ))
+                await self.notif_repo.create(
+                    Notification(
+                        user_id=ticket.submitter_username,
+                        ticket_id=ticket.id,
+                        type=NotificationType.PENDING_WAITING,
+                        content=f"Your ticket is waiting for your reply: {ticket.title}",
+                    )
+                )
 
         # STATUS_CHANGE notification on explicit change
         if data.new_status and data.new_status != old_status and self.notif_repo:
             watchers = await self.ticket_repo.get_watchers(ticket_id)
             for w in watchers:
                 if w.user_id != current_user.user_name:
-                    await self.notif_repo.create(Notification(
-                        user_id=w.user_id,
-                        ticket_id=ticket.id,
-                        type=NotificationType.STATUS_CHANGE,
-                        content=f"Status changed to {data.new_status}: {ticket.title}",
-                    ))
+                    await self.notif_repo.create(
+                        Notification(
+                            user_id=w.user_id,
+                            ticket_id=ticket.id,
+                            type=NotificationType.STATUS_CHANGE,
+                            content=f"Status changed to {data.new_status}: {ticket.title}",
+                        )
+                    )
 
         # Email notifications
         if dispatcher:
@@ -558,6 +629,13 @@ class TicketService:
         target = await self.ticket_repo.get_by_id(data.target_ticket_id)
         if not target:
             raise EntityNotFoundError("Ticket (target)", data.target_ticket_id)
+        # Both ends: linking to a foreign ticket would expose its title and status on get_ticket.
+        await self._ensure_ticket_access(
+            source, current_user, "You don't have permission to modify this ticket"
+        )
+        await self._ensure_ticket_access(
+            target, current_user, "You don't have permission to link that ticket"
+        )
 
         relation = TicketRelation(
             source_ticket_id=ticket_id,
@@ -593,12 +671,20 @@ class TicketService:
         current_user: TokenData,
     ) -> None:
         """Remove a relation and its inverse."""
+        ticket = await self.ticket_repo.get_by_id(ticket_id)
+        if not ticket:
+            raise EntityNotFoundError("Ticket", ticket_id)
+        await self._ensure_ticket_access(
+            ticket, current_user, "You don't have permission to modify this ticket"
+        )
         relation = await self.ticket_repo.get_relation(relation_id)
         if not relation or relation.source_ticket_id != ticket_id:
             raise EntityNotFoundError("TicketRelation", relation_id)
         # Remove inverse
         await self.ticket_repo.remove_inverse_relation(
-            relation.target_ticket_id, relation.source_ticket_id, relation.relation_type,
+            relation.target_ticket_id,
+            relation.source_ticket_id,
+            relation.relation_type,
         )
         await self.ticket_repo.remove_relation(relation_id)
 

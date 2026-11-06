@@ -1,4 +1,4 @@
-"""Mailsender integration for ticket notifications."""
+"""Email service integration for ticket notifications."""
 
 from __future__ import annotations
 
@@ -20,15 +20,39 @@ _email_env = Environment(
 )
 
 _TEMPLATES: dict[str, tuple] = {
-    "ticket-opened":         (lambda t: f"[{t.id.hex[:8]}] Ticket received: {t.title}",                   "email/ticket_opened.html"),
-    "ticket-assigned-staff": (lambda t: f"[{t.id.hex[:8]}] Ticket assigned: {t.title}",                   "email/ticket_assigned_staff.html"),
-    "ticket-mention":        (lambda t: f"[{t.id.hex[:8]}] You were mentioned in: {t.title}",             "email/ticket_mention.html"),
-    "ticket-reply":          (lambda t: f"[{t.id.hex[:8]}] New reply: {t.title}",                        "email/ticket_reply.html"),
-    "ticket-reply-to-staff": (lambda t: f"[{t.id.hex[:8]}] New reply from submitter: {t.title}",          "email/ticket_reply.html"),
-    "ticket-pending":        (lambda t: f"[{t.id.hex[:8]}] Waiting for your reply: {t.title}",            "email/ticket_pending.html"),
-    "ticket-resolved":       (lambda t: f"[{t.id.hex[:8]}] Resolved: {t.title}",                         "email/ticket_resolved.html"),
-    "ticket-reminder-staff":     (lambda t: f"[{t.id.hex[:8]}] Reminder: ticket awaiting reply: {t.title}",  "email/ticket_reminder_staff.html"),
-    "ticket-reminder-submitter": (lambda t: f"[{t.id.hex[:8]}] Your request is waiting for your reply: {t.title}", "email/ticket_reminder_submitter.html"),
+    "ticket-opened": (
+        lambda t: f"[{t.id.hex[:8]}] Ticket received: {t.title}",
+        "email/ticket_opened.html",
+    ),
+    "ticket-assigned-staff": (
+        lambda t: f"[{t.id.hex[:8]}] Ticket assigned: {t.title}",
+        "email/ticket_assigned_staff.html",
+    ),
+    "ticket-mention": (
+        lambda t: f"[{t.id.hex[:8]}] You were mentioned in: {t.title}",
+        "email/ticket_mention.html",
+    ),
+    "ticket-reply": (lambda t: f"[{t.id.hex[:8]}] New reply: {t.title}", "email/ticket_reply.html"),
+    "ticket-reply-to-staff": (
+        lambda t: f"[{t.id.hex[:8]}] New reply from submitter: {t.title}",
+        "email/ticket_reply.html",
+    ),
+    "ticket-pending": (
+        lambda t: f"[{t.id.hex[:8]}] Waiting for your reply: {t.title}",
+        "email/ticket_pending.html",
+    ),
+    "ticket-resolved": (
+        lambda t: f"[{t.id.hex[:8]}] Resolved: {t.title}",
+        "email/ticket_resolved.html",
+    ),
+    "ticket-reminder-staff": (
+        lambda t: f"[{t.id.hex[:8]}] Reminder: ticket awaiting reply: {t.title}",
+        "email/ticket_reminder_staff.html",
+    ),
+    "ticket-reminder-submitter": (
+        lambda t: f"[{t.id.hex[:8]}] Your request is waiting for your reply: {t.title}",
+        "email/ticket_reminder_submitter.html",
+    ),
 }
 
 
@@ -46,7 +70,7 @@ async def send_ticket_email(
     reassigned_by: str = "",
     days_elapsed: str = "",
 ) -> None:
-    """Send one notification email via mailsender with locally rendered HTML.
+    """Send one notification email via the email service with locally rendered HTML.
 
     Caller is responsible for resolving the recipient address before calling.
     """
@@ -93,18 +117,21 @@ async def send_ticket_email(
 
     try:
         response = await http_client.post(
-            settings.mailsender_url,
+            settings.email_service_url,
             json=payload,
             headers=headers,
-            timeout=settings.mailsender_timeout,
+            timeout=settings.email_service_timeout,
         )
         if response.status_code not in (200, 202):
             logger.warning(
-                "Mailsender %s for ticket %s slug %s to %s",
-                response.status_code, ticket_short_id, slug, to_email,
+                "Email service returned %s for ticket %s slug %s to %s",
+                response.status_code,
+                ticket_short_id,
+                slug,
+                to_email,
             )
     except httpx.RequestError as e:
-        logger.error("Mailsender error for ticket %s: %s", ticket_short_id, e)
+        logger.error("Email service error for ticket %s: %s", ticket_short_id, e)
 
 
 class NotificationDispatcher:
@@ -140,7 +167,9 @@ class NotificationDispatcher:
         """Send one email. Never raises — all exceptions are logged and swallowed."""
         try:
             await send_ticket_email(
-                ticket, slug, self._client,
+                ticket,
+                slug,
+                self._client,
                 service_token=self._token,
                 to_email=to_email,
                 **kwargs,
@@ -159,35 +188,53 @@ class NotificationDispatcher:
 
         # 1. Confirm to submitter
         if ticket.submitter_email:
-            await self._send(ticket, "ticket-opened", ticket.submitter_email,
-                             queue_name=queue_name,
-                             staff_name=ticket.assigned_to or "")
+            await self._send(
+                ticket,
+                "ticket-opened",
+                ticket.submitter_email,
+                queue_name=queue_name,
+                staff_name=ticket.assigned_to or "",
+            )
 
         # 2a. Notify individually assigned user (if set)
         if ticket.assigned_to:
             assignee_email = self._lookup_email(ticket.assigned_to)
             if assignee_email:
-                await self._send(ticket, "ticket-assigned-staff", assignee_email,
-                                 queue_name=queue_name,
-                                 staff_name=ticket.assigned_to)
+                await self._send(
+                    ticket,
+                    "ticket-assigned-staff",
+                    assignee_email,
+                    queue_name=queue_name,
+                    staff_name=ticket.assigned_to,
+                )
 
         # 2b. Notify queue / team fallback (queue.email or support_email)
         staff_dest = (queue.email if queue and queue.email else None) or settings.support_email
         # Avoid duplicate if assignee IS the queue/support address
-        assignee_email_check = self._lookup_email(ticket.assigned_to) if ticket.assigned_to else None
+        assignee_email_check = (
+            self._lookup_email(ticket.assigned_to) if ticket.assigned_to else None
+        )
         if staff_dest and staff_dest != assignee_email_check:
-            await self._send(ticket, "ticket-assigned-staff", staff_dest,
-                             queue_name=queue_name,
-                             staff_name=queue_name)
+            await self._send(
+                ticket,
+                "ticket-assigned-staff",
+                staff_dest,
+                queue_name=queue_name,
+                staff_name=queue_name,
+            )
 
         # 3. Mentions — always send, even if mentioned user is the submitter
         submitter = ticket.submitter_username or ""
         for username in mentioned_usernames:
             email = self._lookup_email(username)
             if email:
-                await self._send(ticket, "ticket-mention", email,
-                                 queue_name=queue_name,
-                                 mentioned_by=submitter or ticket.submitter_email)
+                await self._send(
+                    ticket,
+                    "ticket-mention",
+                    email,
+                    queue_name=queue_name,
+                    mentioned_by=submitter or ticket.submitter_email,
+                )
 
     async def ticket_assigned(
         self,
@@ -201,10 +248,14 @@ class NotificationDispatcher:
         if not email:
             return
         queue_name = queue.name if queue else ""
-        await self._send(ticket, "ticket-assigned-staff", email,
-                         queue_name=queue_name,
-                         staff_name=assignee_username,
-                         reassigned_by=reassigned_by)
+        await self._send(
+            ticket,
+            "ticket-assigned-staff",
+            email,
+            queue_name=queue_name,
+            staff_name=assignee_username,
+            reassigned_by=reassigned_by,
+        )
 
     async def followup_added(
         self,
@@ -223,28 +274,44 @@ class NotificationDispatcher:
         # Reply direction
         if is_staff and is_public:
             if ticket.submitter_email:
-                await self._send(ticket, "ticket-reply", ticket.submitter_email,
-                                 queue_name=queue_name,
-                                 staff_name=actor_username,
-                                 reply_content=reply_content)
+                await self._send(
+                    ticket,
+                    "ticket-reply",
+                    ticket.submitter_email,
+                    queue_name=queue_name,
+                    staff_name=actor_username,
+                    reply_content=reply_content,
+                )
         elif not is_staff:
             dest = self._lookup_email(ticket.assigned_to) or settings.support_email
             if dest:
-                await self._send(ticket, "ticket-reply-to-staff", dest,
-                                 queue_name=queue_name,
-                                 staff_name=actor_username,
-                                 reply_content=reply_content)
+                await self._send(
+                    ticket,
+                    "ticket-reply-to-staff",
+                    dest,
+                    queue_name=queue_name,
+                    staff_name=actor_username,
+                    reply_content=reply_content,
+                )
 
         # Status transitions — PENDING and RESOLVED only via followup
         if new_status == "pending" and ticket.submitter_email:
-            await self._send(ticket, "ticket-pending", ticket.submitter_email,
-                             queue_name=queue_name,
-                             staff_name=actor_username,
-                             reply_content=reply_content)
+            await self._send(
+                ticket,
+                "ticket-pending",
+                ticket.submitter_email,
+                queue_name=queue_name,
+                staff_name=actor_username,
+                reply_content=reply_content,
+            )
         elif new_status == "resolved" and ticket.submitter_email:
-            await self._send(ticket, "ticket-resolved", ticket.submitter_email,
-                             queue_name=queue_name,
-                             staff_name=actor_username)
+            await self._send(
+                ticket,
+                "ticket-resolved",
+                ticket.submitter_email,
+                queue_name=queue_name,
+                staff_name=actor_username,
+            )
 
         # Mentions (skip actor)
         for username in mentioned_usernames:
@@ -252,9 +319,13 @@ class NotificationDispatcher:
                 continue
             email = self._lookup_email(username)
             if email:
-                await self._send(ticket, "ticket-mention", email,
-                                 queue_name=queue_name,
-                                 mentioned_by=actor_username)
+                await self._send(
+                    ticket,
+                    "ticket-mention",
+                    email,
+                    queue_name=queue_name,
+                    mentioned_by=actor_username,
+                )
 
     async def ticket_status_changed(self, ticket: Ticket, new_status: str) -> None:
         """Email for direct status patch (PATCH /tickets/{id} without a followup).

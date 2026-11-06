@@ -73,7 +73,10 @@ class ValidationError(ServiceException):
 
 
 async def service_exception_handler(_request: Request, exc: ServiceException) -> JSONResponse:
-    logger.warning(f"Service exception: {exc.message}", extra={"extra_fields": {"status_code": exc.status_code}})
+    logger.warning(
+        f"Service exception: {exc.message}",
+        extra={"extra_fields": {"status_code": exc.status_code}},
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={"success": False, "message": exc.message, "details": exc.details},
@@ -84,7 +87,10 @@ async def validation_exception_handler(
     _request: Request, exc: RequestValidationError | PydanticValidationError
 ) -> JSONResponse:
     errors = exc.errors() if hasattr(exc, "errors") else []
-    cleaned = [{"loc": e.get("loc", []), "msg": e.get("msg", ""), "type": e.get("type", "")} for e in errors]
+    cleaned = [
+        {"loc": e.get("loc", []), "msg": e.get("msg", ""), "type": e.get("type", "")}
+        for e in errors
+    ]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"success": False, "message": "Validation error", "details": {"errors": cleaned}},
@@ -92,16 +98,32 @@ async def validation_exception_handler(
 
 
 async def sqlalchemy_exception_handler(_request: Request, exc: SQLAlchemyError) -> JSONResponse:
-    logger.error("Database error", extra={"extra_fields": {"error_type": exc.__class__.__name__}}, exc_info=True)
+    logger.error(
+        "Database error",
+        extra={"extra_fields": {"error_type": exc.__class__.__name__}},
+        exc_info=True,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"success": False, "message": "Database error", "details": {"type": exc.__class__.__name__}},
+        content={
+            "success": False,
+            "message": "Database error",
+            "details": {"type": exc.__class__.__name__},
+        },
     )
 
 
 async def general_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
-    logger.error("Unexpected error", extra={"extra_fields": {"error_type": exc.__class__.__name__}}, exc_info=True)
+    logger.error(
+        "Unexpected error",
+        extra={"extra_fields": {"error_type": exc.__class__.__name__}},
+        exc_info=True,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"success": False, "message": "Internal server error", "details": {"type": exc.__class__.__name__}},
+        content={
+            "success": False,
+            "message": "Internal server error",
+            "details": {"type": exc.__class__.__name__},
+        },
     )

@@ -70,12 +70,19 @@ class RequestLoggingMiddleware:
         start_time = time.time()
 
         logger.info(
-            "📥 %s %s", method, path,
-            extra={"extra_fields": {
-                "request_id": request_id, "method": method,
-                "path": path, "query_string": query_string,
-                "client_host": client_host, "user_agent": user_agent,
-            }},
+            "📥 %s %s",
+            method,
+            path,
+            extra={
+                "extra_fields": {
+                    "request_id": request_id,
+                    "method": method,
+                    "path": path,
+                    "query_string": query_string,
+                    "client_host": client_host,
+                    "user_agent": user_agent,
+                }
+            },
         )
 
         status_code = 500
@@ -94,14 +101,19 @@ class RequestLoggingMiddleware:
         except Exception as exc:
             duration_ms = (time.time() - start_time) * 1000
             logger.error(
-                "❌ %s %s - Exception (%s)", method, path, type(exc).__name__,
-                extra={"extra_fields": {
-                    "request_id": request_id,
-                    "method": method,
-                    "path": path,
-                    "duration_ms": round(duration_ms, 2),
-                    "error": str(exc),
-                }},
+                "❌ %s %s - Exception (%s)",
+                method,
+                path,
+                type(exc).__name__,
+                extra={
+                    "extra_fields": {
+                        "request_id": request_id,
+                        "method": method,
+                        "path": path,
+                        "duration_ms": round(duration_ms, 2),
+                        "error": str(exc),
+                    }
+                },
                 exc_info=True,
             )
             raise
@@ -118,9 +130,18 @@ class RequestLoggingMiddleware:
 
         logger.log(
             log_level,
-            "%s %s %s - %s (%.2fms)", emoji, method, path, status_code, duration_ms,
-            extra={"extra_fields": {
-                "request_id": request_id, "status_code": status_code,
-                "duration_ms": round(duration_ms, 2), "client_host": client_host,
-            }},
+            "%s %s %s - %s (%.2fms)",
+            emoji,
+            method,
+            path,
+            status_code,
+            duration_ms,
+            extra={
+                "extra_fields": {
+                    "request_id": request_id,
+                    "status_code": status_code,
+                    "duration_ms": round(duration_ms, 2),
+                    "client_host": client_host,
+                }
+            },
         )

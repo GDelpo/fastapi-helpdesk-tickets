@@ -1,4 +1,5 @@
 """Employee portal routes — /portal/*"""
+
 from datetime import date
 from pathlib import Path
 
@@ -27,12 +28,36 @@ _MIME = {
 }
 
 _PORTAL_NAV_LEFT = [
-    {"href_suffix": "/portal/", "label": "Home", "key": "inicio", "icon": "house", "fa_icon": "fa-solid fa-house"},
-    {"href_suffix": "/portal/categories/", "label": "Categories", "key": "categories", "icon": "layout-grid", "fa_icon": "fa-solid fa-table-cells-large"},
+    {
+        "href_suffix": "/portal/",
+        "label": "Home",
+        "key": "inicio",
+        "icon": "house",
+        "fa_icon": "fa-solid fa-house",
+    },
+    {
+        "href_suffix": "/portal/categories/",
+        "label": "Categories",
+        "key": "categories",
+        "icon": "layout-grid",
+        "fa_icon": "fa-solid fa-table-cells-large",
+    },
 ]
-_PORTAL_NAV_CTA = {"href_suffix": "/portal/new", "label": "Open Ticket", "key": "new", "icon": "plus-circle", "fa_icon": "fa-solid fa-circle-plus"}
+_PORTAL_NAV_CTA = {
+    "href_suffix": "/portal/new",
+    "label": "Open Ticket",
+    "key": "new",
+    "icon": "plus-circle",
+    "fa_icon": "fa-solid fa-circle-plus",
+}
 _PORTAL_NAV_RIGHT = [
-    {"href_suffix": "/portal/tickets/", "label": "My Tickets", "key": "my", "icon": "ticket", "fa_icon": "fa-solid fa-list-check"},
+    {
+        "href_suffix": "/portal/tickets/",
+        "label": "My Tickets",
+        "key": "my",
+        "icon": "ticket",
+        "fa_icon": "fa-solid fa-list-check",
+    },
 ]
 
 
@@ -41,6 +66,7 @@ async def portal_static(path: str):
     file = _STATIC_DIR / path
     if not file.is_file() or not file.resolve().is_relative_to(_STATIC_DIR.resolve()):
         from fastapi.responses import JSONResponse
+
         return JSONResponse({"detail": "Not found"}, status_code=404)
     return FileResponse(file, media_type=_MIME.get(file.suffix, "application/octet-stream"))
 
@@ -65,7 +91,8 @@ def _portal_ctx(request: Request, *, page_title: str, active_key: str, **extra) 
         "active": _PORTAL_NAV_CTA["key"] == active_key,
     }
     return {
-        "request": request, "base": base,
+        "request": request,
+        "base": base,
         "service_name": settings.service_name,
         "portal_navbar_title": settings.portal_navbar_title,
         "company_name": settings.company_name,
@@ -89,18 +116,22 @@ def _portal_ctx(request: Request, *, page_title: str, active_key: str, **extra) 
 @portal_router.get("/login", response_class=HTMLResponse)
 async def portal_login(request: Request):
     base = _base(request)
-    return templates.TemplateResponse("portal/login.html", {
-        "request": request, "base": base,
-        "service_name": settings.service_name,
-        "portal_navbar_title": settings.portal_navbar_title,
-        "company_name": settings.company_name,
-        "company_website": settings.company_website,
-        "company_logo_url": settings.company_logo_url,
-        "company_favicon_url": settings.company_favicon_url,
-        "support_email": settings.support_email,
-        "identity_me_url": base + "/api/v1/me",
-        "meta": _build_meta(),
-    })
+    return templates.TemplateResponse(
+        "portal/login.html",
+        {
+            "request": request,
+            "base": base,
+            "service_name": settings.service_name,
+            "portal_navbar_title": settings.portal_navbar_title,
+            "company_name": settings.company_name,
+            "company_website": settings.company_website,
+            "company_logo_url": settings.company_logo_url,
+            "company_favicon_url": settings.company_favicon_url,
+            "support_email": settings.support_email,
+            "identity_me_url": base + "/api/v1/me",
+            "meta": _build_meta(),
+        },
+    )
 
 
 @portal_router.get("/", response_class=HTMLResponse)

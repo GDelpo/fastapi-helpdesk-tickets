@@ -150,7 +150,7 @@ def upgrade() -> None:
     op.create_index("ix_notifications_user_read",  "notifications", ["user_id", "is_read"])
     op.create_index("ix_notifications_ticket_id",  "notifications", ["ticket_id"])
 
-    # Seed queues (inserta primero los sin parent, luego los hijos)
+    # Seed queues (roots first, then children)
     conn = op.get_bind()
     queues_table = sa.table(
         "queues",

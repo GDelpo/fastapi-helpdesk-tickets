@@ -1,6 +1,6 @@
 # ============================================================================
 # Tickets Service - Production Dockerfile
-# Tailwind v4 browser build — no requiere compilacion de CSS
+# Tailwind v4 browser build — no CSS compilation step
 # ============================================================================
 
 # ============================================================================
@@ -55,7 +55,7 @@ COPY --chown=appuser:appuser alembic.ini ./
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Directorio de adjuntos — debe existir con permisos de appuser antes de montar el volumen
+# Attachments directory — must exist, owned by appuser, before the volume is mounted
 RUN mkdir -p /data/attachments && chown -R appuser:appuser /data
 
 USER appuser

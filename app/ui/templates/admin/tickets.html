@@ -201,12 +201,12 @@
       return;
     }
     tbody.innerHTML = tickets.map(t => `
-      <tr onclick="window.location.href='${BASE}/dashboard/tickets/${t.id}'">
-        <td class="w-10 px-4 py-3" onclick="event.stopPropagation()">
+      <tr data-ticket-id="${esc(t.id)}">
+        <td class="w-10 px-4 py-3" data-row-check>
           <input type="checkbox" class="ticket-check cursor-pointer accent-blue-500"
-                 value="${t.id}" onchange="onCheckChange()" />
+                 value="${esc(t.id)}" />
         </td>
-        <td class="font-mono text-xs">#${t.id.substring(0, 8)}</td>
+        <td class="font-mono text-xs">#${esc(t.id.substring(0, 8))}</td>
         <td class="font-medium max-w-xs truncate" style="color: var(--color-text-primary);">${esc(t.title)}</td>
         <td>${esc(t.queueName || '—')}</td>
         <td>${statusBadge(t.status)}</td>
@@ -327,6 +327,17 @@
       showToast('Error updating tickets', 'error');
     }
   }
+
+  // Delegated row handling: the checkbox cell selects, any other cell opens the ticket.
+  const ticketsBody = document.getElementById('tickets-tbody');
+  ticketsBody.addEventListener('change', (e) => {
+    if (e.target.classList.contains('ticket-check')) onCheckChange();
+  });
+  ticketsBody.addEventListener('click', (e) => {
+    if (e.target.closest('[data-row-check]')) return;
+    const row = e.target.closest('tr[data-ticket-id]');
+    if (row) window.location.href = `${BASE}/dashboard/tickets/${encodeURIComponent(row.dataset.ticketId)}`;
+  });
 
   loadQueues();
   loadTickets();

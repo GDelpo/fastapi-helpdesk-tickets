@@ -132,7 +132,8 @@
     const c = resolveColor(q.color, idx);
     const icon = iconForQueue(q, idx);
     const openCount = countMap[q.id] || 0;
-    const isOtros = (q.name || '').toLowerCase() === 'otros';
+    // Catch-all queue seeded by alembic/versions/001_init.py: drawn with a dashed border.
+    const isCatchAll = q.slug === 'general-request';
 
     const parentHint = parentName
       ? `<div class="text-[11px] text-gray-400 mt-0.5">Subcategory of ${esc(parentName)}</div>`
@@ -148,15 +149,15 @@
           no open tickets
         </span>`;
 
-    const borderExtra = isOtros ? 'border-dashed' : '';
+    const borderExtra = isCatchAll ? 'border-dashed' : '';
 
     return `
       <div class="bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-200 border border-gray-200 hover:border-${c.hover} hover:shadow-md group ${borderExtra} ${compact ? 'p-3.5' : 'p-4'}"
-           onclick="openInCategory(${q.id})">
+           data-action="open-category" data-queue-id="${esc(q.id)}">
 
         <div class="flex items-start gap-3.5 ${compact ? 'mb-3' : 'mb-4'}">
           <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm">
-            <i class="fas ${icon} text-white" style="font-size:14px;"></i>
+            <i class="fas ${esc(icon)} text-white" style="font-size:14px;"></i>
           </div>
           <div class="flex-1 min-w-0">
             <h3 class="text-sm font-bold text-gray-800 leading-snug group-hover:${c.btnText} transition-colors">${esc(q.name)}</h3>
@@ -168,7 +169,7 @@
         <div class="flex items-center justify-between">
           ${countLabel}
           <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${c.btnBg} ${c.btnText} border ${c.btnBorder} hover:${c.btnHoverBg} hover:text-white"
-                  onclick="event.stopPropagation();openNewTicket(${q.id})">
+                  data-action="new-ticket" data-queue-id="${esc(q.id)}">
             <i class="fas fa-plus" style="font-size:10px;"></i>
             Open ticket
           </button>
@@ -256,7 +257,7 @@
           <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-transparent flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-8 h-8 flex-shrink-0 rounded-lg bg-gradient-to-br ${gc.gradient} flex items-center justify-center shadow-sm">
-                <i class="fas ${iconForQueue(group.root, colorIdx)} text-white" style="font-size:12px;"></i>
+                <i class="fas ${esc(iconForQueue(group.root, colorIdx))} text-white" style="font-size:12px;"></i>
               </div>
               <div class="min-w-0">
                 <h2 class="text-sm font-bold text-gray-800 truncate">${esc(group.root.name)}</h2>
@@ -266,7 +267,7 @@
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-xs font-medium text-gray-500">${sectionOpenCount} active</span>
               <button class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${gc.btnBg} ${gc.btnText} border ${gc.btnBorder} hover:${gc.btnHoverBg} hover:text-white"
-                      onclick="openInCategory(${group.root.id})">
+                      data-action="open-category" data-queue-id="${esc(group.root.id)}">
                 <i class="fas fa-list" style="font-size:10px;"></i>
                 View all
               </button>
@@ -304,6 +305,15 @@
   function openNewTicket(queueId) {
     window.location.href = BASE + '/portal/new?queue_id=' + queueId;
   }
+
+  // Delegated card/button clicks: the closest data-action wins, so "Open ticket" inside a card
+  // does not also open the category (replaces the old inline stopPropagation).
+  document.getElementById('categories-grid').addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'new-ticket') openNewTicket(el.dataset.queueId);
+    else if (el.dataset.action === 'open-category') openInCategory(el.dataset.queueId);
+  });
 
   loadCategories();
 </script>

@@ -34,9 +34,7 @@ class IdentityServiceClient:
             logger.error("Identity service connection error: %s", e)
             return None
 
-    async def verify_token(
-        self, token: str, http_client: httpx.AsyncClient
-    ) -> dict | None:
+    async def verify_token(self, token: str, http_client: httpx.AsyncClient) -> dict | None:
         """Verify JWT token with identity /me. Returns user data or None."""
         try:
             response = await http_client.get(
@@ -87,8 +85,15 @@ class IdentityServiceClient:
             if not token:
                 return []
             response = await http_client.get(
-                f"{self.base_url}/users/",
-                params={"role": role, "is_active": str(is_active).lower(), "skip": skip, "limit": limit, "sort_by": "user_name:asc"},
+                # Identity lists users at GET {api_prefix} itself (there is no /users/ route).
+                f"{self.base_url}/",
+                params={
+                    "role": role,
+                    "is_active": str(is_active).lower(),
+                    "skip": skip,
+                    "limit": limit,
+                    "sort_by": "user_name:asc",
+                },
                 headers={"Authorization": f"Bearer {token}"},
                 timeout=self.timeout,
             )
@@ -99,4 +104,3 @@ class IdentityServiceClient:
         except httpx.RequestError as e:
             logger.error("Identity users list error: %s", e)
             return []
-

@@ -1,7 +1,7 @@
 /**
- * ticket-form.js — Lógica del formulario de nuevo ticket (portal).
+ * ticket-form.js — logic of the new-ticket form (portal).
  *
- * Uso en el template:
+ * Usage in the template:
  *   <script>
  *     const _attachments = initAttachments({...});
  *     initMentions('new-description', API_BASE);
@@ -11,7 +11,7 @@
 
 window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = null }) {
 
-  // ── Cargar categorías (árbol padre → hijos) ───────────────────────────────
+  // ── Load categories (parent → children tree) ──────────────────────────────
   async function loadQueues() {
     const token = localStorage.getItem('tk_token');
     if (!token) return;
@@ -32,7 +32,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
     roots.forEach(root => {
       const kids = childrenOf(root.id);
       if (kids.length) {
-        // Padre con hijos: <optgroup> (no seleccionable) + <option> por cada hijo
+        // Parent with children: <optgroup> (not selectable) + one <option> per child
         const grp = document.createElement('optgroup');
         grp.label = root.name;
         kids.forEach(child => {
@@ -43,7 +43,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
         });
         sel.appendChild(grp);
       } else {
-        // Hoja sin hijos: <option> directa
+        // Leaf without children: plain <option>
         const opt = document.createElement('option');
         opt.value = root.id;
         opt.textContent = root.name;
@@ -51,7 +51,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
       }
     });
 
-    // Huérfanos (parentId apunta a un padre que no existe en la lista)
+    // Orphans (parentId points to a parent missing from the list)
     active.filter(q => q.parentId && !byId.has(q.parentId)).sort(sort).forEach(q => {
       const opt = document.createElement('option');
       opt.value = q.id;
@@ -59,7 +59,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
       sel.appendChild(opt);
     });
 
-    // Pre-seleccionar categoría si viene por URL param
+    // Preselect the category when it comes as a URL param
     if (preQueueId) sel.value = preQueueId;
   }
 
@@ -107,7 +107,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
     if (assignedInput) assignedInput.focus();
   }
 
-  // Botón × del chip
+  // Chip × button
   const chipClear = document.getElementById('assigned-chip-clear');
   if (chipClear) chipClear.addEventListener('click', clearAssigned);
 
@@ -251,7 +251,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
 
     const user = (typeof getUser === 'function') ? getUser() : null;
 
-    // Paso 1: crear el ticket
+    // Step 1: create the ticket
     const token = localStorage.getItem('tk_token');
     let resp;
     try {
@@ -270,7 +270,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
           parentId,
           assignedTo,
           submitterEmail: user?.mail || '',
-          mentionedUserIds: [],  // @menciones en description son parseadas por el backend via regex
+          mentionedUserIds: [],  // @mentions in the description are parsed by the backend via regex
         }),
       });
     } catch (e) {
@@ -292,7 +292,7 @@ window.initTicketForm = function ({ base, apiBase, attachments, preQueueId = nul
 
     const ticket = await resp.json();
 
-    // Paso 2: subir adjuntos (si hay)
+    // Step 2: upload attachments (if any)
     if (attachments && attachments.getFiles().length) {
       await attachments.uploadTo(ticket.id);
     }

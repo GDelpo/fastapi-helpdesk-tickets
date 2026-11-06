@@ -49,7 +49,9 @@ async def check_and_send_reminders(
             staff_sent += 1
             logger.info(
                 "Staff reminder sent",
-                extra={"extra_fields": {"ticket_id": str(ticket.id), "assigned_to": ticket.assigned_to}},
+                extra={
+                    "extra_fields": {"ticket_id": str(ticket.id), "assigned_to": ticket.assigned_to}
+                },
             )
         except Exception as e:
             logger.error("Failed to send staff reminder for ticket %s: %s", ticket.id, e)
@@ -66,7 +68,12 @@ async def check_and_send_reminders(
             submitter_sent += 1
             logger.info(
                 "Submitter reminder sent",
-                extra={"extra_fields": {"ticket_id": str(ticket.id), "submitter_email": ticket.submitter_email}},
+                extra={
+                    "extra_fields": {
+                        "ticket_id": str(ticket.id),
+                        "submitter_email": ticket.submitter_email,
+                    }
+                },
             )
         except Exception as e:
             logger.error("Failed to send submitter reminder for ticket %s: %s", ticket.id, e)

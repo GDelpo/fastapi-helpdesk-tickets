@@ -45,9 +45,7 @@ async def save_attachments(
         return []
 
     if len(files) > settings.attachments_max_per_ticket:
-        raise ValidationError(
-            f"Max {settings.attachments_max_per_ticket} files per ticket"
-        )
+        raise ValidationError(f"Max {settings.attachments_max_per_ticket} files per ticket")
 
     ticket_dir = STORAGE_ROOT / ticket_id.hex[:8]
     ticket_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +55,10 @@ async def save_attachments(
     for file in files:
         # Validate MIME type
         content_type = file.content_type or "application/octet-stream"
-        if settings.attachments_allowed_types and content_type not in settings.attachments_allowed_types:
+        if (
+            settings.attachments_allowed_types
+            and content_type not in settings.attachments_allowed_types
+        ):
             raise ValidationError(
                 f"File type not allowed: {content_type}. "
                 f"Allowed: {', '.join(settings.attachments_allowed_types)}"
@@ -99,7 +100,9 @@ async def save_attachments(
         await session.refresh(a)
 
     logger.info(
-        "Saved %d attachments for ticket %s", len(saved), ticket_id.hex[:8],
+        "Saved %d attachments for ticket %s",
+        len(saved),
+        ticket_id.hex[:8],
     )
     return saved
 

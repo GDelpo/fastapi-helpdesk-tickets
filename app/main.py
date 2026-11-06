@@ -14,7 +14,6 @@ from sqlmodel import select
 
 from app.api import router as api_router
 from app.config import settings
-from app.ui.routes import portal_router, router as dashboard_router
 from app.database import async_session_maker
 from app.exceptions import (
     ServiceException,
@@ -26,6 +25,8 @@ from app.exceptions import (
 from app.logger import configure_logging, get_logger
 from app.middleware import ProxyHeadersMiddleware, RequestLoggingMiddleware
 from app.schemas import DependencyStatus, HealthResponse, ServiceStatus
+from app.ui.routes import portal_router
+from app.ui.routes import router as dashboard_router
 
 configure_logging()
 logger = get_logger(__name__)
@@ -35,10 +36,15 @@ logger = get_logger(__name__)
 async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
     logger.info(
         "Starting Tickets Service",
-        extra={"extra_fields": {"version": settings.project_version, "environment": settings.environment}},
+        extra={
+            "extra_fields": {
+                "version": settings.project_version,
+                "environment": settings.environment,
+            }
+        },
     )
 
-    # Shared HTTP client for calls to identity and mailsender
+    # Shared HTTP client for calls to identity and the email service
     app_instance.state.http_client = httpx.AsyncClient(
         timeout=httpx.Timeout(10.0),
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
@@ -48,7 +54,9 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
 
     # Preload users cache for mentions/autocomplete
     from app.auth_service import IdentityServiceClient
+
     identity_client = IdentityServiceClient(base_url=settings.identity_service_url)
+
     async def load_users_cache():
         client = app_instance.state.http_client
         service_token = await identity_client.get_service_token(client)
@@ -56,7 +64,12 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
             logger.error("No service token for preload users cache")
             return []
         try:
-            params = {"role": "employee", "is_active": "true", "sort_by": "user_name:asc", "limit": "100"}
+            params = {
+                "role": "employee",
+                "is_active": "true",
+                "sort_by": "user_name:asc",
+                "limit": "100",
+            }
             resp = await client.get(
                 settings.identity_users_url,
                 params=params,
@@ -68,7 +81,8 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
                 logger.info(f"Preloaded {len(data)} users for mention cache")
                 return [
                     {"userName": u["userName"], "mail": u.get("mail"), "displayName": u["userName"]}
-                    for u in data if u.get("role") != "service"
+                    for u in data
+                    if u.get("role") != "service"
                 ]
             logger.warning(f"Identity preload users failed: {resp.status_code} {resp.text[:200]}")
             return []
@@ -76,8 +90,8 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
             logger.error(f"Identity preload users error: {e}")
             return []
 
-
     import asyncio
+
     app_instance.state.users_cache = await load_users_cache()
     if app_instance.state.users_cache:
         logger.info(f"Users cache loaded: {len(app_instance.state.users_cache)} users")
@@ -87,7 +101,7 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
     async def users_cache_refresher():
         while True:
             await asyncio.sleep(5 * 60 * 60)  # 5 hours
-            logger.info("Refreshing users cache from Identidad...")
+            logger.info("Refreshing users cache from identity...")
             app_instance.state.users_cache = await load_users_cache()
             logger.info(f"Users cache refreshed: {len(app_instance.state.users_cache)} users")
 
@@ -100,12 +114,13 @@ async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
                 continue
             try:
                 from app.database import async_session_maker
-                from app.reminders import check_and_send_reminders
                 from app.notifications import NotificationDispatcher
+                from app.reminders import check_and_send_reminders
+
                 svc_token = await identity_client.get_service_token(app_instance.state.http_client)
                 dispatcher = NotificationDispatcher(
                     http_client=app_instance.state.http_client,
-                    service_token=svc_token or '',
+                    service_token=svc_token or "",
                     users_cache=app_instance.state.users_cache or [],
                 )
                 async with async_session_maker() as session:
@@ -176,6 +191,7 @@ app.include_router(portal_router, prefix="/portal")
 # Health Check
 # =============================================================================
 
+
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check(request: Request) -> HealthResponse:
     from fastapi.responses import JSONResponse
@@ -187,19 +203,30 @@ async def health_check(request: Request) -> HealthResponse:
         async with async_session_maker() as session:
             await session.execute(select(1))
         dependencies["postgresql"] = DependencyStatus(status=ServiceStatus.HEALTHY, latency_ms=0)
-    except Exception as e:
-        dependencies["postgresql"] = DependencyStatus(status=ServiceStatus.UNHEALTHY, error=str(e))
+    except Exception:
+        # /health is public: the detail (hosts, driver errors) goes to the log only.
+        logger.exception("Health check: PostgreSQL unreachable")
+        dependencies["postgresql"] = DependencyStatus(
+            status=ServiceStatus.UNHEALTHY, error="unreachable"
+        )
 
     # Check identity reachability (OPTIONAL)
     try:
         client: httpx.AsyncClient = request.app.state.http_client
-        resp = await client.get(f"{settings.identity_service_url.replace('/api/v1', '')}/health", timeout=3.0)
+        resp = await client.get(
+            f"{settings.identity_service_url.replace('/api/v1', '')}/health", timeout=3.0
+        )
         if resp.status_code == 200:
             dependencies["identity"] = DependencyStatus(status=ServiceStatus.HEALTHY, latency_ms=0)
         else:
-            dependencies["identity"] = DependencyStatus(status=ServiceStatus.DEGRADED, error=f"HTTP {resp.status_code}")
-    except Exception as e:
-        dependencies["identity"] = DependencyStatus(status=ServiceStatus.DEGRADED, error=str(e))
+            dependencies["identity"] = DependencyStatus(
+                status=ServiceStatus.DEGRADED, error=f"HTTP {resp.status_code}"
+            )
+    except Exception:
+        logger.warning("Health check: identity unreachable", exc_info=True)
+        dependencies["identity"] = DependencyStatus(
+            status=ServiceStatus.DEGRADED, error="unreachable"
+        )
 
     critical = [dependencies["postgresql"].status]
     if ServiceStatus.UNHEALTHY in critical:

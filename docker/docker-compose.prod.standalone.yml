@@ -1,5 +1,5 @@
 # ============================================================================
-# Tickets Service - Docker Compose (Production standalone, sin Traefik)
+# Tickets Service - Docker Compose (Production standalone, without Traefik)
 # ============================================================================
 #
 # USAGE:
@@ -38,7 +38,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      # admin.css y portal.css se compilan en el Dockerfile (stage frontend-builder)
     container_name: tickets_api
     restart: unless-stopped
     env_file:

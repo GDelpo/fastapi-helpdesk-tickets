@@ -37,7 +37,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      # admin.css y portal.css se compilan en el Dockerfile (stage frontend-builder)
     container_name: tickets_api_dev
     env_file:
       - ../.env

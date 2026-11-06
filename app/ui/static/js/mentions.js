@@ -1,12 +1,12 @@
 /**
- * mentions.js — Autocomplete inline de @menciones.
+ * mentions.js — inline @mention autocomplete.
  *
- * Uso:
+ * Usage:
  *   initMentions('textarea-id', API_BASE)
  *
- * Al escribir '@' + al menos 1 char en el textarea, muestra un dropdown
- * con usuarios que coincidan. Al seleccionar, inserta @username en el texto.
- * El backend parsea @menciones del texto con regex — no requiere enviar IDs separados.
+ * Typing '@' plus at least 1 char in the textarea shows a dropdown with matching
+ * users. Selecting one inserts @username into the text.
+ * The backend parses @mentions from the text with a regex — no separate IDs are sent.
  */
 
 window.initMentions = function (textareaId, apiBase) {
@@ -18,7 +18,7 @@ window.initMentions = function (textareaId, apiBase) {
   dropdown.className = 'hidden absolute z-30 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto min-w-[220px]';
   dropdown.style.cssText = 'top:100%;left:0;';
 
-  // Wrapper con position:relative
+  // Wrapper with position:relative
   const wrapper = document.createElement('div');
   wrapper.style.position = 'relative';
   textarea.parentNode.insertBefore(wrapper, textarea);
@@ -82,13 +82,13 @@ window.initMentions = function (textareaId, apiBase) {
     clearTimeout(_debounceTimer);
     const pos = textarea.selectionStart;
     const before = textarea.value.substring(0, pos);
-    // Detectar si estamos escribiendo @algo
+    // Detect whether the user is typing @something
     const match = before.match(/@([\w.]*)$/);
     if (!match) { closeDrop(); return; }
     const q = match[1];
     if (q === _currentQuery) return;
     _currentQuery = q;
-    // Sin debounce si q está vacío (solo @ escrito): el cache ya está cargado
+    // No debounce when q is empty (only @ typed): the cache is already loaded
     const delay = q.length === 0 ? 0 : 250;
     _debounceTimer = setTimeout(async () => {
       const users = await fetchSuggestions(q);
@@ -110,6 +110,6 @@ window.initMentions = function (textareaId, apiBase) {
     if (!wrapper.contains(e.target)) closeDrop();
   });
 
-  // Pre-cargar el cache al inicializar para que el primer @ sea instantáneo
+  // Preload the cache on init so the first @ is instant
   window.loadUsersCache(apiBase);
 };

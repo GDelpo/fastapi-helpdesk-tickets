@@ -1,6 +1,6 @@
 """Application settings and configuration."""
 
-from pydantic import Field, SecretStr, computed_field, model_validator
+from pydantic import AliasChoices, Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -101,10 +101,18 @@ class Settings(BaseSettings):
     tickets_service_password: SecretStr = SecretStr("")
 
     # =========================================================================
-    # Mailsender Service
+    # Email Service
     # =========================================================================
-    mailsender_url: str = "http://mailsender_api:8081/api/v1/emails"
-    mailsender_timeout: float = 5.0
+    # Full URL of the email service's emails endpoint (the client appends no path).
+    # INTENTIONAL: the legacy MAILSENDER_* names are still read so older deployments keep working.
+    email_service_url: str = Field(
+        default="http://email_service_api:8081/api/v1/emails",
+        validation_alias=AliasChoices("EMAIL_SERVICE_URL", "MAILSENDER_URL"),
+    )
+    email_service_timeout: float = Field(
+        default=5.0,
+        validation_alias=AliasChoices("EMAIL_SERVICE_TIMEOUT", "MAILSENDER_TIMEOUT"),
+    )
 
     # =========================================================================
     # Attachments
@@ -112,15 +120,21 @@ class Settings(BaseSettings):
     attachments_path: str = "/data/attachments"
     attachments_max_size_mb: int = 10
     attachments_max_per_ticket: int = 20
-    attachments_allowed_types: list[str] = Field(default_factory=lambda: [
-        "application/pdf",
-        "image/png", "image/jpeg", "image/gif", "image/webp",
-        "text/plain", "text/csv",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ])
+    attachments_allowed_types: list[str] = Field(
+        default_factory=lambda: [
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "text/plain",
+            "text/csv",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ]
+    )
 
     @computed_field
     @property
@@ -135,10 +149,12 @@ class Settings(BaseSettings):
     # =========================================================================
     # Email Reminders (asyncio background task)
     # =========================================================================
-    reminder_staff_days: int = 2          # Days with no staff followup → remind assigned agent
-    reminder_submitter_days: int = 2      # Days with no submitter followup on pending → remind submitter
+    reminder_staff_days: int = 2  # Days with no staff followup → remind assigned agent
+    reminder_submitter_days: int = (
+        2  # Days with no submitter followup on pending → remind submitter
+    )
     reminder_check_interval_hours: int = 6  # How often the background task runs
-    reminder_enabled: bool = True         # Kill switch
+    reminder_enabled: bool = True  # Kill switch
 
     # =========================================================================
     # Validation

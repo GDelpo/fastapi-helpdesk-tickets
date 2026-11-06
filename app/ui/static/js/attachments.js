@@ -1,7 +1,7 @@
 /**
- * attachments.js — Manejo de adjuntos: selección, drag&drop, preview, upload.
+ * attachments.js — attachment handling: selection, drag&drop, preview, upload.
  *
- * Uso:
+ * Usage:
  *   const att = initAttachments({
  *     inputId: 'file-input',
  *     previewId: 'file-preview',
@@ -37,7 +37,7 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
   const dropZone  = dropZoneId ? document.getElementById(dropZoneId) : null;
   const maxBytes  = maxMb * 1024 * 1024;
 
-  // MIME types aceptados (alineado con backend settings.attachments_allowed_types)
+  // Accepted MIME types (kept in sync with backend settings.attachments_allowed_types)
   const ALLOWED_MIME = new Set([
     'application/pdf',
     'image/png', 'image/jpeg', 'image/gif', 'image/webp',
@@ -60,17 +60,21 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
           <div class="font-medium text-gray-700 max-w-[160px] truncate">${esc(f.name)}</div>
           <div class="text-gray-400">${formatBytes(f.size)}</div>
         </div>
-        <button type="button" onclick="__att_remove_${inputId}(${idx})"
+        <button type="button" data-att-remove="${idx}"
                 class="text-gray-400 hover:text-red-500 transition-colors ml-1 flex-shrink-0">×</button>
       </div>
     `).join('');
   }
 
-  // Expose remove function globally (named by inputId to avoid collisions)
-  window[`__att_remove_${inputId}`] = function (idx) {
-    _files.splice(idx, 1);
-    renderPreview();
-  };
+  // Delegated remove: values travel in data-* attributes, never inside inline handlers.
+  if (previewEl) {
+    previewEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-att-remove]');
+      if (!btn) return;
+      _files.splice(Number(btn.dataset.attRemove), 1);
+      renderPreview();
+    });
+  }
 
   function addFiles(fileList) {
     const incoming = Array.from(fileList || []);
@@ -78,11 +82,11 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
       // Dedup by name+size+lastModified
       if (_files.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) continue;
       if (file.size > maxBytes) {
-        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" exceeds ${maxMb} MB — not added.`, 'warning');
+        if (typeof showToast === 'function') showToast(`"${file.name}" exceeds ${maxMb} MB — not added.`, 'warning');
         continue;
       }
       if (!ALLOWED_MIME.has(file.type)) {
-        if (typeof showToast === 'function') showToast(`"${esc(file.name)}" file type not allowed (${file.type || 'unknown'}).`, 'warning');
+        if (typeof showToast === 'function') showToast(`"${file.name}" file type not allowed (${file.type || 'unknown'}).`, 'warning');
         continue;
       }
       _files.push(file);
@@ -113,9 +117,9 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
   }
 
   /**
-   * Sube los archivos al servidor.
-   * Continúa en caso de error parcial (reporta por toast, no lanza).
-   * @returns {Promise<object[]>} adjuntos guardados exitosamente
+   * Uploads the files to the server.
+   * Keeps going on partial errors (reports via toast, does not throw).
+   * @returns {Promise<object[]>} attachments saved successfully
    */
   async function uploadTo(ticketId, followupId = null) {
     if (!_files.length) return [];
@@ -140,7 +144,7 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
         renderPreview();
         return saved;
       }
-      // Intenta parsear el error del backend
+      // Try to parse the backend error
       const err = await resp.json().catch(() => ({}));
       if (typeof showToast === 'function') {
         showToast(err.message || 'Error uploading attachments.', 'error');
@@ -167,13 +171,15 @@ window.initAttachments = function ({ inputId, previewId, dropZoneId, maxMb = 10 
 };
 
 /**
- * Renderiza un adjunto guardado como link de descarga.
- * Requiere BASE definido en el template.
+ * Renders a saved attachment as a download button.
+ * Requires BASE defined in the template. The filename is user-controlled: it is only
+ * written escaped into text and data-* attributes; clicks are handled by delegation below.
  */
 window.renderAttachmentLink = function (a) {
-  // Botón de descarga vía fetch con Authorization
+  // Download button via fetch with the Authorization header
   return `
-    <button type="button" onclick="downloadAttachment('${a.ticketId}','${a.id}','${esc(a.filename)}')"
+    <button type="button" data-att-download data-ticket-id="${esc(a.ticketId)}"
+      data-attachment-id="${esc(a.id)}" data-filename="${esc(a.filename)}"
       class="inline-flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 hover:border-blue-300 hover:bg-blue-50 transition-colors no-underline">
       <i class="fas ${fileIcon(a.mimeType, a.filename)} text-sm flex-shrink-0"></i>
       <span class="text-xs text-gray-700 font-medium max-w-[180px] truncate">${esc(a.filename)}</span>
@@ -182,7 +188,13 @@ window.renderAttachmentLink = function (a) {
     </button>`;
 };
 
-// Descarga adjunto autenticado
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-att-download]');
+  if (!btn) return;
+  window.downloadAttachment(btn.dataset.ticketId, btn.dataset.attachmentId, btn.dataset.filename);
+});
+
+// Authenticated attachment download
 window.downloadAttachment = async function(ticketId, attId, filename) {
   const token = localStorage.getItem('tk_token');
   if (!token) {

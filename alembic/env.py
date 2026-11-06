@@ -3,13 +3,14 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 
-# noqa: F401 — importar modelos para que Alembic los detecte
-from app.models import Attachment, FollowUp, Queue, Ticket, TicketWatcher  # noqa: F401
+from alembic import context
 from app.config import settings
+
+# noqa: F401 — import the models so Alembic detects them
+from app.models import Attachment, FollowUp, Queue, Ticket, TicketWatcher  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

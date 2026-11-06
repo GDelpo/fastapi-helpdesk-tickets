@@ -85,9 +85,15 @@
     return LUCIDE_TO_FA[name] || 'fa-tag';
   };
 
-  function esc(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function esc(s) {
+    // Escapes for HTML text AND quoted attributes (& < > " '): user data also lands in data-* attributes.
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function formatDate(iso) {
@@ -180,12 +186,12 @@
     };
     list.innerHTML = data.data.map(n => `
       <div class="flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${n.isRead?'opacity-60':'notif-unread-item hover:bg-blue-50'}"
-           onclick="handleNotifClick('${n.id}', '${n.ticketId}', this)">
+           data-notif-id="${esc(n.id)}" data-ticket-id="${esc(n.ticketId || '')}">
         <div class="notif-dot ${n.isRead?'bg-gray-300':'bg-blue-500'}"></div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5 mb-1">
             <i class="fa-solid ${typeIcon[n.type] || 'fa-bell'} text-xs ${n.isRead ? 'text-gray-300' : 'text-blue-500'}"></i>
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${typeClass[n.type] || 'bg-gray-100 text-gray-600'}">${typeLabel[n.type] || n.type}</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${typeClass[n.type] || 'bg-gray-100 text-gray-600'}">${esc(typeLabel[n.type] || n.type)}</span>
           </div>
           <div class="text-xs font-medium text-gray-800 leading-snug">${esc(n.content)}</div>
           <div class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-clock mr-1"></i>${timeAgo(n.createdAt)}</div>
@@ -199,9 +205,15 @@
     await markNotifRead(id, el);
     closeBell();
     if (ticketId) {
-      window.location.href = `${BASE}/portal/tickets/${ticketId}`;
+      window.location.href = `${BASE}/portal/tickets/${encodeURIComponent(ticketId)}`;
     }
   }
+
+  // Delegated notification clicks (document level: the bell list lives in the navbar include).
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-notif-id]');
+    if (el) handleNotifClick(el.dataset.notifId, el.dataset.ticketId, el);
+  });
 
   async function markNotifRead(id, el) {
     el.classList.remove('notif-unread-item');

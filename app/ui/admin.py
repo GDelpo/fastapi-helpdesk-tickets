@@ -1,4 +1,5 @@
 """Admin dashboard routes — /dashboard/*"""
+
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -26,8 +27,18 @@ _MIME = {
 }
 
 _ADMIN_NAV = [
-    {"href_suffix": "/dashboard/", "icon": "layout-dashboard", "label": "Overview", "key": "overview"},
-    {"href_suffix": "/dashboard/tickets/", "icon": "ticket", "label": "All tickets", "key": "tickets"},
+    {
+        "href_suffix": "/dashboard/",
+        "icon": "layout-dashboard",
+        "label": "Overview",
+        "key": "overview",
+    },
+    {
+        "href_suffix": "/dashboard/tickets/",
+        "icon": "ticket",
+        "label": "All tickets",
+        "key": "tickets",
+    },
     {"href_suffix": "/dashboard/queues/", "icon": "layers", "label": "Categories", "key": "queues"},
 ]
 
@@ -37,6 +48,7 @@ async def admin_static(path: str):
     file = _STATIC_DIR / path
     if not file.is_file() or not file.resolve().is_relative_to(_STATIC_DIR.resolve()):
         from fastapi.responses import JSONResponse
+
         return JSONResponse({"detail": "Not found"}, status_code=404)
     return FileResponse(file, media_type=_MIME.get(file.suffix, "application/octet-stream"))
 
@@ -52,7 +64,8 @@ def _admin_ctx(request: Request, *, page_title: str, active_key: str, **extra) -
         for item in _ADMIN_NAV
     ]
     return {
-        "request": request, "base": base,
+        "request": request,
+        "base": base,
         "service_name": settings.service_name,
         "service_icon": "ticket",
         "company_name": settings.company_name,
@@ -60,6 +73,7 @@ def _admin_ctx(request: Request, *, page_title: str, active_key: str, **extra) -
         "company_logo_url": settings.company_logo_url,
         "company_favicon_url": settings.company_favicon_url,
         "support_email": settings.support_email,
+        "docs_url": settings.docs_url,
         "nav_items": nav_items,
         "page_title": page_title,
         "layout": "admin",
@@ -71,18 +85,22 @@ def _admin_ctx(request: Request, *, page_title: str, active_key: str, **extra) -
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     base = _base(request)
-    return templates.TemplateResponse("admin/login.html", {
-        "request": request, "base": base,
-        "service_name": settings.service_name,
-        "service_icon": "ticket",
-        "company_name": settings.company_name,
-        "company_website": settings.company_website,
-        "company_logo_url": settings.company_logo_url,
-        "company_favicon_url": settings.company_favicon_url,
-        "support_email": settings.support_email,
-        "identity_me_url": base + "/api/v1/me",
-        "meta": _build_meta(),
-    })
+    return templates.TemplateResponse(
+        "admin/login.html",
+        {
+            "request": request,
+            "base": base,
+            "service_name": settings.service_name,
+            "service_icon": "ticket",
+            "company_name": settings.company_name,
+            "company_website": settings.company_website,
+            "company_logo_url": settings.company_logo_url,
+            "company_favicon_url": settings.company_favicon_url,
+            "support_email": settings.support_email,
+            "identity_me_url": base + "/api/v1/me",
+            "meta": _build_meta(),
+        },
+    )
 
 
 @router.get("/", response_class=HTMLResponse)

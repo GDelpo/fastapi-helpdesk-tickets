@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, JSON
+from sqlalchemy import JSON, Column, DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 # asyncpg is strict: TIMESTAMPTZ requires SQLAlchemy to declare timezone=True
@@ -12,26 +12,26 @@ _TZ = DateTime(timezone=True)
 
 
 class TicketStatus(str, enum.Enum):
-    OPEN        = "open"
+    OPEN = "open"
     IN_PROGRESS = "in_progress"
-    PENDING     = "pending"
-    REOPENED    = "reopened"
-    RESOLVED    = "resolved"
-    CLOSED      = "closed"
+    PENDING = "pending"
+    REOPENED = "reopened"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
 
 
 class TicketPriority(int, enum.Enum):
     CRITICAL = 1
-    HIGH     = 2
-    NORMAL   = 3
-    LOW      = 4
+    HIGH = 2
+    NORMAL = 3
+    LOW = 4
     VERY_LOW = 5
 
 
 class RelationType(str, enum.Enum):
-    RELATED    = "related"
-    DUPLICATE  = "duplicate"
-    BLOCKS     = "blocks"
+    RELATED = "related"
+    DUPLICATE = "duplicate"
+    BLOCKS = "blocks"
     BLOCKED_BY = "blocked_by"
 
 
@@ -40,17 +40,21 @@ class RelationType(str, enum.Enum):
 # =============================================================================
 
 STATUS_LABELS: dict[str, str] = {
-    "open":        "Open",
+    "open": "Open",
     "in_progress": "In progress",
-    "pending":     "Pending",
-    "reopened":    "Reopened",
-    "resolved":    "Resolved",
-    "closed":      "Closed",
+    "pending": "Pending",
+    "reopened": "Reopened",
+    "resolved": "Resolved",
+    "closed": "Closed",
 }
 
 STATUS_ORDER: dict[str, int] = {
-    "open": 1, "in_progress": 2, "pending": 3,
-    "reopened": 4, "resolved": 5, "closed": 6,
+    "open": 1,
+    "in_progress": 2,
+    "pending": 3,
+    "reopened": 4,
+    "resolved": 5,
+    "closed": 6,
 }
 
 PRIORITY_LABELS: dict[str, str] = {
@@ -89,6 +93,7 @@ def _build_meta() -> dict:
 # Queue (ticket category)
 # =============================================================================
 
+
 class Queue(SQLModel, table=True):
     """Ticket category/queue. Hierarchical (parent/child) with optional assignee."""
 
@@ -119,6 +124,7 @@ class Queue(SQLModel, table=True):
 # Ticket
 # =============================================================================
 
+
 class Ticket(SQLModel, table=True):
     """Support ticket."""
 
@@ -137,7 +143,7 @@ class Ticket(SQLModel, table=True):
     # Who opened the ticket
     submitter_email: str = Field(max_length=200)
     submitter_username: str | None = None
-    created_by_id: str | None = None    # identity UUID (as string)
+    created_by_id: str | None = None  # identity UUID (as string)
 
     # Assigned to (staff) — username, not UUID
     assigned_to: str | None = None
@@ -164,6 +170,7 @@ class Ticket(SQLModel, table=True):
 # FollowUp (comment/reply on a ticket)
 # =============================================================================
 
+
 class FollowUp(SQLModel, table=True):
     """Comment or update on a ticket."""
 
@@ -172,13 +179,13 @@ class FollowUp(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     ticket_id: uuid.UUID = Field(foreign_key="tickets.id")
 
-    user_id: str | None = None      # identity UUID
-    user_name: str | None = None    # Display name
+    user_id: str | None = None  # identity UUID
+    user_name: str | None = None  # Display name
 
     comment: str
     is_public: bool = True
     is_staff: bool = False
-    new_status: str | None = None    # If the followup changes the ticket status
+    new_status: str | None = None  # If the followup changes the ticket status
     new_priority: str | None = None  # If the followup changes the ticket priority
     mentions: list[str] = Field(default=[], sa_column=Column(JSON))
 
@@ -191,6 +198,7 @@ class FollowUp(SQLModel, table=True):
 # =============================================================================
 # Attachment (followup attachment)
 # =============================================================================
+
 
 class Attachment(SQLModel, table=True):
     """File attached to a followup or directly to a ticket."""
@@ -215,6 +223,7 @@ class Attachment(SQLModel, table=True):
 # TicketWatcher (visibility + notifications)
 # =============================================================================
 
+
 class TicketWatcher(SQLModel, table=True):
     """User watching a ticket (creator, assignee, mentioned)."""
 
@@ -230,6 +239,7 @@ class TicketWatcher(SQLModel, table=True):
 # =============================================================================
 # TicketRelation (related, duplicate, blocking tickets)
 # =============================================================================
+
 
 class TicketRelation(SQLModel, table=True):
     """Relation between two tickets (related, duplicate, blocks/blocked_by)."""
@@ -248,11 +258,12 @@ class TicketRelation(SQLModel, table=True):
 # Notification
 # =============================================================================
 
+
 class NotificationType(str, enum.Enum):
-    NEW_TICKET      = "new_ticket"
-    REPLY           = "reply"
-    STATUS_CHANGE   = "status_change"
-    MENTION         = "mention"
+    NEW_TICKET = "new_ticket"
+    REPLY = "reply"
+    STATUS_CHANGE = "status_change"
+    MENTION = "mention"
     PENDING_WAITING = "pending_waiting"
 
 

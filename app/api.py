@@ -12,7 +12,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth_service import IdentityServiceClient
 from app.config import settings
-from app.models import _build_meta
 from app.dependencies import (
     AdminUser,
     CurrentUser,
@@ -26,6 +25,8 @@ from app.dependencies import (
 )
 from app.exceptions import AuthenticationError, EntityNotFoundError
 from app.logger import get_logger
+from app.models import _build_meta
+from app.notifications import NotificationDispatcher
 from app.repository import NotificationRepository, QueueRepository, TicketRepository
 from app.schemas import (
     AttachmentResponse,
@@ -50,7 +51,6 @@ from app.schemas import (
     TicketUpdate,
 )
 from app.service import QueueService, TicketService
-from app.notifications import NotificationDispatcher
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -78,6 +78,7 @@ async def _build_dispatcher(request: Request) -> NotificationDispatcher | None:
 # =============================================================================
 # Auth
 # =============================================================================
+
 
 @router.post("/login", response_model=LoginResponse, tags=["Auth"])
 async def login(
@@ -138,6 +139,7 @@ async def get_my_stats(
 # Identity proxy
 # =============================================================================
 
+
 @router.get("/identity/users", response_model=list[IdentityUserSummary], tags=["Identity"])
 async def list_assignable_users(
     request: Request,
@@ -162,6 +164,7 @@ async def list_assignable_users(
 # Queues
 # =============================================================================
 
+
 @router.get("/queues/", response_model=list[QueueResponse], tags=["Queues"])
 async def list_queues(
     current_user: CurrentUser,
@@ -172,7 +175,9 @@ async def list_queues(
     return [QueueResponse.model_validate(q) for q in queues]
 
 
-@router.post("/queues/", response_model=QueueResponse, status_code=status.HTTP_201_CREATED, tags=["Queues"])
+@router.post(
+    "/queues/", response_model=QueueResponse, status_code=status.HTTP_201_CREATED, tags=["Queues"]
+)
 async def create_queue(
     data: QueueCreate,
     current_user: AdminUser,
@@ -221,6 +226,7 @@ async def delete_queue(
 # Tickets (staff)
 # =============================================================================
 
+
 @router.get("/tickets/", response_model=PaginatedResponse[TicketSummary], tags=["Tickets"])
 async def list_tickets(
     current_user: CurrentUser,
@@ -229,14 +235,21 @@ async def list_tickets(
     service: TicketService = Depends(get_ticket_service),
 ):
     tickets, total = await service.list_tickets(
-        filters=filters, skip=pagination.skip, limit=pagination.limit,
+        filters=filters,
+        skip=pagination.skip,
+        limit=pagination.limit,
         current_user=current_user,
     )
     meta = PaginationMeta.from_params(total, pagination.skip, pagination.limit)
     return PaginatedResponse(data=[TicketSummary.model_validate(t) for t in tickets], meta=meta)
 
 
-@router.post("/tickets/", response_model=TicketResponse, status_code=status.HTTP_201_CREATED, tags=["Tickets"])
+@router.post(
+    "/tickets/",
+    response_model=TicketResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Tickets"],
+)
 async def create_ticket(
     data: TicketCreate,
     request: Request,
@@ -290,11 +303,12 @@ async def run_reminders_now(
     """Manually trigger the reminder check. Admin only. Returns counts sent."""
     from app.database import async_session_maker
     from app.reminders import check_and_send_reminders
+
     client: httpx.AsyncClient = request.app.state.http_client
     svc_token = await identity_client.get_service_token(client)
     dispatcher = NotificationDispatcher(
         http_client=client,
-        service_token=svc_token or '',
+        service_token=svc_token or "",
         users_cache=request.app.state.users_cache or [],
     )
     async with async_session_maker() as session:
@@ -331,6 +345,7 @@ async def close_ticket(
 # FollowUps
 # =============================================================================
 
+
 @router.post(
     "/tickets/{ticket_id}/followups/",
     response_model=FollowUpResponse,
@@ -352,6 +367,7 @@ async def add_followup(
 # =============================================================================
 # Ticket Relations
 # =============================================================================
+
 
 @router.post(
     "/tickets/{ticket_id}/relations/",
@@ -387,6 +403,7 @@ async def remove_relation(
 # Attachments
 # =============================================================================
 
+
 @router.post(
     "/tickets/{ticket_id}/attachments/",
     response_model=list[AttachmentResponse],
@@ -400,9 +417,15 @@ async def upload_attachments(
     followup_id: Annotated[uuid.UUID | None, Query()] = None,
     service: TicketService = Depends(get_ticket_service),
 ):
-    """Upload files to a ticket. Optionally link to a followup."""
+    """Upload files to a ticket. Optionally link to a followup of that same ticket."""
     from app.attachment_storage import save_attachments
+
     ticket = await service.get_ticket(ticket_id, current_user)
+    if followup_id is not None:
+        followup = await service.ticket_repo.get_followup(followup_id)
+        # A followup of another ticket would show these files inside that ticket's timeline.
+        if not followup or followup.ticket_id != ticket.id:
+            raise EntityNotFoundError("FollowUp", followup_id)
     saved = await save_attachments(
         ticket_id=ticket.id,
         files=files,
@@ -440,6 +463,7 @@ async def download_attachment(
 ):
     """Download an attachment file."""
     from app.attachment_storage import get_attachment_path
+
     # Validates access
     await service.get_ticket(ticket_id, current_user)
     attachment = await service.ticket_repo.get_attachment(attachment_id)
@@ -457,6 +481,7 @@ async def download_attachment(
 # Portal — Mis Tickets
 # =============================================================================
 
+
 @router.get("/my/tickets/", response_model=PaginatedResponse[TicketSummary], tags=["Portal"])
 async def my_tickets(
     current_user: CurrentUser,
@@ -471,8 +496,9 @@ async def my_tickets(
         search=filters.search,
         include_closed=filters.include_closed,
     )
-    filter_kwargs = {k: v for k, v in my_filters.model_dump().items()
-                    if v is not None and k != "include_closed"}
+    filter_kwargs = {
+        k: v for k, v in my_filters.model_dump().items() if v is not None and k != "include_closed"
+    }
     tickets = await service.ticket_repo.list_tickets(
         skip=pagination.skip,
         limit=pagination.limit,
@@ -491,7 +517,12 @@ async def my_tickets(
     return PaginatedResponse(data=[TicketSummary.model_validate(t) for t in tickets], meta=meta)
 
 
-@router.post("/my/tickets/", response_model=TicketResponse, status_code=status.HTTP_201_CREATED, tags=["Portal"])
+@router.post(
+    "/my/tickets/",
+    response_model=TicketResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Portal"],
+)
 async def create_my_ticket(
     data: TicketCreate,
     request: Request,
@@ -508,6 +539,7 @@ async def create_my_ticket(
 # Portal — Notifications
 # =============================================================================
 
+
 @router.get("/my/notifications/", tags=["Portal"])
 async def my_notifications(
     current_user: CurrentUser,
@@ -517,7 +549,10 @@ async def my_notifications(
     notif_repo: NotificationRepository = Depends(get_notification_repository),
 ):
     notifs = await notif_repo.list_for_user(
-        current_user.user_name, unread_only=unread, limit=limit, offset=offset,
+        current_user.user_name,
+        unread_only=unread,
+        limit=limit,
+        offset=offset,
     )
     unread_count = await notif_repo.count_unread(current_user.user_name)
     return {
@@ -551,11 +586,19 @@ async def read_notification(
 # Portal — User suggestions (proxy to identity)
 # =============================================================================
 
+
 @router.get("/users/search", tags=["Portal"])
 async def search_users(
     request: Request,
     current_user: CurrentUser,
-    q: Annotated[str, Query(min_length=0, max_length=100, description="Search query — empty returns all employees (for client-side cache)")] = "",
+    q: Annotated[
+        str,
+        Query(
+            min_length=0,
+            max_length=100,
+            description="Search query — empty returns all employees (for client-side cache)",
+        ),
+    ] = "",
 ) -> list[dict]:
     """Search users for @mention autocomplete.
     Now always served from in-memory cache loaded at startup with service token.
@@ -564,4 +607,8 @@ async def search_users(
     if not q:
         return users[:200]
     lq = q.lower()
-    return [u for u in users if lq in u["userName"].lower() or (u.get("mail") and lq in u["mail"].lower())][:10]
+    return [
+        u
+        for u in users
+        if lq in u["userName"].lower() or (u.get("mail") and lq in u["mail"].lower())
+    ][:10]

@@ -52,7 +52,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      # admin.css y portal.css se compilan en el Dockerfile (stage frontend-builder)
     container_name: tickets_api
     restart: unless-stopped
     env_file:
@@ -64,7 +63,7 @@ services:
       DEBUG: "false"
       # Inter-service communication (direct via Docker network, not Traefik)
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity_api:8080/api/v1}
-      MAILSENDER_URL: ${MAILSENDER_URL:-http://mailsender_api:8081/api/v1/emails}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email_service_api:8081/api/v1/emails}
     volumes:
       - ${DATA_ROOT:-./data}/tickets/attachments:/data/attachments
     depends_on:

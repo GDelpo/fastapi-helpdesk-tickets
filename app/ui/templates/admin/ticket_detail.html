@@ -208,6 +208,16 @@
     renderRelations(ticket.relations || []);
   }
 
+  // Delete button for an attachment. Ids and the (user-controlled) filename go into escaped
+  // data-* attributes; the click is handled by the delegated listener at the end of the script.
+  function attachmentDeleteButton(a, extraClass) {
+    return `<button type="button" data-action="delete-attachment" data-ticket-id="${esc(a.ticketId)}"
+      data-attachment-id="${esc(a.id)}" data-filename="${esc(a.filename)}"
+      class="btn btn-ghost p-1 ${extraClass}" style="color: var(--color-error);" title="Delete attachment">
+      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+    </button>`;
+  }
+
   function renderTicket(t) {
     document.getElementById('tk-status').innerHTML = statusBadge(t.status);
     document.getElementById('tk-priority').innerHTML = priorityBadge(t.priority);
@@ -237,10 +247,7 @@
       tkAttList.innerHTML = tkAtts.map(a => `
         <div class="inline-flex items-center gap-1">
           ${renderAttachmentLink(a)}
-          <button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})"
-            class="btn btn-ghost p-1 text-xs" style="color: var(--color-error);" title="Delete attachment">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
+          ${attachmentDeleteButton(a, 'text-xs')}
         </div>`).join('');
       lucide.createIcons();
     }
@@ -279,7 +286,7 @@
           </div>
           ${f.newStatus ? `<div class="text-xs">${statusBadge(f.newStatus)}</div>` : ''}
           <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">${esc(f.comment)}</p>
-          ${(f.attachments || []).length ? `<div class="flex flex-wrap gap-2 mt-1">${(f.attachments || []).map(a => `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}<button type="button" onclick="deleteAttachment('${a.ticketId}','${a.id}',${JSON.stringify(a.filename)})" class="btn btn-ghost p-1" style="color: var(--color-error);" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>`).join('')}</div>` : ''}
+          ${(f.attachments || []).length ? `<div class="flex flex-wrap gap-2 mt-1">${(f.attachments || []).map(a => `<div class="inline-flex items-center gap-1">${renderAttachmentLink(a)}${attachmentDeleteButton(a, '')}</div>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
     lucide.createIcons();
@@ -292,7 +299,7 @@
     const users = await resp.json();
     const sel = document.getElementById('edit-assigned');
     users.forEach(u => {
-      sel.innerHTML += `<option value="${esc(u.userName)}">${esc(u.userName)}${u.mail ? ' — ' + u.mail : ''}</option>`;
+      sel.innerHTML += `<option value="${esc(u.userName)}">${esc(u.userName)}${u.mail ? ' — ' + esc(u.mail) : ''}</option>`;
     });
     if (ticket?.assignedTo) sel.value = ticket.assignedTo;
   }
@@ -392,14 +399,14 @@
       const statusHtml = r.targetStatus ? statusBadge(r.targetStatus) : '';
       return `<div class="flex items-center gap-3 px-5 py-2.5">
         <span class="text-xs font-medium shrink-0" style="color: var(--color-text-muted);">
-          <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 inline-block mr-1"></i>${meta.label}
+          <i data-lucide="${esc(meta.icon)}" class="w-3.5 h-3.5 inline-block mr-1"></i>${esc(meta.label)}
         </span>
-        <a href="${BASE}/dashboard/tickets/${r.targetTicketId}"
+        <a href="${BASE}/dashboard/tickets/${encodeURIComponent(r.targetTicketId)}"
            class="text-sm font-medium flex-1 truncate hover:underline"
            style="color: var(--color-accent-hover);"
-           title="${title}">#${shortId} — ${title}</a>
+           title="${title}">#${esc(shortId)} — ${title}</a>
         ${statusHtml}
-        <button onclick="deleteRelation('${r.id}')"
+        <button type="button" data-action="delete-relation" data-relation-id="${esc(r.id)}"
                 class="btn btn-ghost btn-sm p-1 shrink-0" title="Remove relation">
           <i data-lucide="x" class="w-3.5 h-3.5" style="color: var(--color-text-muted);"></i>
         </button>
@@ -431,10 +438,10 @@
       const tickets = (data.data || []).filter(t => t.id !== TICKET_ID);
       suggestions.classList.toggle('hidden', !tickets.length);
       suggestions.innerHTML = tickets.map(t =>
-        `<div onclick="selectRelationTicket('${t.id}', ${JSON.stringify(esc(t.title))})"
+        `<div data-action="select-relation" data-ticket-id="${esc(t.id)}" data-title="${esc(t.title)}"
               class="px-3 py-2 text-sm cursor-pointer hover:opacity-75 transition"
               style="color: var(--color-text-primary);">
-           <span class="font-mono text-xs" style="color: var(--color-text-muted);">#${t.id.substring(0,8)}</span>
+           <span class="font-mono text-xs" style="color: var(--color-text-muted);">#${esc(t.id.substring(0,8))}</span>
            ${esc(t.title)}
          </div>`
       ).join('');
@@ -490,6 +497,16 @@
       showToast(err.message || 'Error deleting attachment', 'error');
     }
   }
+
+  // Delegated handlers for buttons rendered from API data (no inline on* handlers with values).
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const d = el.dataset;
+    if (d.action === 'delete-attachment') deleteAttachment(d.ticketId, d.attachmentId, d.filename);
+    else if (d.action === 'delete-relation') deleteRelation(d.relationId);
+    else if (d.action === 'select-relation') selectRelationTicket(d.ticketId, d.title);
+  });
 
   loadTicket();
   if (isAdmin()) loadAssignableUsers();

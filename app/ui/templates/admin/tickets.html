@@ -316,8 +316,12 @@
       body: JSON.stringify({ ids, status }),
     });
     if (resp && resp.ok) {
-      const { updated } = await resp.json();
-      showToast(`${updated} ticket${updated !== 1 ? 's' : ''} updated`, 'success');
+      const { updated, failed = [] } = await resp.json();
+      if (failed.length) {
+        showToast(`${updated} updated, ${failed.length} not updated: ${failed.map(f => f.error).join('; ')}`, 'error');
+      } else {
+        showToast(`${updated} ticket${updated !== 1 ? 's' : ''} updated`, 'success');
+      }
       selectedIds.clear();
       document.getElementById('check-all').checked = false;
       document.getElementById('check-all').indeterminate = false;

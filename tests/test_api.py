@@ -1,6 +1,7 @@
 """HTTP-level tests: routers, dependencies and error handling through FastAPI's TestClient."""
 
 import re
+import uuid
 from pathlib import Path
 
 import httpx
@@ -257,3 +258,46 @@ def test_admin_sidebar_shows_docs_url(monkeypatch):
     response = TestClient(app).get("/dashboard/")
     assert response.status_code == 200
     assert 'href="https://docs.example.com/helpdesk"' in response.text
+
+
+# --- Bulk status update -----------------------------------------------------------------
+
+
+def test_bulk_update_reports_tickets_it_could_not_update(client_as, repos):
+    ticket = make_ticket(repos[0], submitter="bob")
+    missing = uuid.uuid4()
+
+    response = client_as(make_user("root", "admin")).patch(
+        f"{PREFIX}/tickets/bulk",
+        json={"ids": [str(ticket.id), str(missing)], "status": "in_progress"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["updated"] == 1
+    assert [f["id"] for f in body["failed"]] == [str(missing)]
+    assert body["failed"][0]["error"]
+
+
+def test_bulk_update_does_not_hide_unexpected_errors(client_as, repos, service, monkeypatch):
+    ticket = make_ticket(repos[0], submitter="bob")
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("database went away")
+
+    monkeypatch.setattr(service, "update_ticket", broken)
+    client = client_as(make_user("root", "admin"))
+    with pytest.raises(RuntimeError):
+        client.patch(f"{PREFIX}/tickets/bulk", json={"ids": [str(ticket.id)], "status": "closed"})
+
+
+# --- CORS -------------------------------------------------------------------------------
+
+
+def test_cors_rejects_other_origins_and_never_allows_credentials(client_as):
+    response = client_as(make_user("bob")).options(
+        f"{PREFIX}/tickets/",
+        headers={"Origin": "https://evil.example.com", "Access-Control-Request-Method": "GET"},
+    )
+    assert "access-control-allow-origin" not in response.headers
+    assert "access-control-allow-credentials" not in response.headers

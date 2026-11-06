@@ -129,7 +129,7 @@ Environment variables read by `app/config.py` (`.env.example` has a starting set
 | `DOCS_URL` | Optional link shown in the admin sidebar | empty |
 | `REMINDER_STAFF_DAYS` / `REMINDER_SUBMITTER_DAYS` | Days without a reply before reminding the assignee / the submitter | `2` / `2` |
 | `REMINDER_CHECK_INTERVAL_HOURS` / `REMINDER_ENABLED` | Reminder task interval and kill switch | `6` / `true` |
-| `CORS_ORIGINS` | Allowed origins (JSON list) | `["*"]` |
+| `CORS_ORIGINS` | Origins allowed to call the API from a browser (JSON list). Empty means same-origin only, which is all the built-in UIs need; credentials are never allowed cross-origin | `[]` |
 | `DEBUG` / `ENVIRONMENT` | Debug mode; environment defaults to `development` or `production` from `DEBUG` | `false` / derived |
 | `LOG_LEVEL` / `LOG_FORMAT` / `LOG_FILE` | Logging (`json` or `text`; optional file) | `INFO` (`DEBUG` with `DEBUG=true`) / `json` / none |
 | `API_PREFIX` | API mount point | `/api/v1` |
@@ -155,7 +155,7 @@ Auth column: **none** = public; **user** = any valid bearer token (checked again
 | GET | `/api/v1/tickets/{id}` | Ticket detail with follow-ups, relations, attachments | user (submitter / watcher) |
 | PATCH | `/api/v1/tickets/{id}` | Update; non-admins may edit title, description and priority, resolve or reopen, and reassign if they are the submitter or the assignee | user (submitter / watcher) |
 | DELETE | `/api/v1/tickets/{id}` | Close the ticket (status `closed`, not a delete) | admin |
-| PATCH | `/api/v1/tickets/bulk` | Bulk status change | admin |
+| PATCH | `/api/v1/tickets/bulk` | Bulk status change; returns `updated` and a `failed` list with each ticket id and reason | admin |
 | POST | `/api/v1/tickets/{id}/followups/` | Add a follow-up | user (submitter / watcher) |
 | POST | `/api/v1/tickets/{id}/relations/` | Link two tickets (inverse created automatically) | user (access to both tickets) |
 | DELETE | `/api/v1/tickets/{id}/relations/{relation_id}` | Remove a relation and its inverse | user (submitter / watcher) |

@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     # =========================================================================
     # CORS
     # =========================================================================
-    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    # No cross-origin browser access unless origins are listed; the admin and
+    # portal UIs are served from this same origin.
+    cors_origins: list[str] = Field(default_factory=list)
 
     # =========================================================================
     # Database (PostgreSQL)

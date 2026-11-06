@@ -23,7 +23,7 @@ from app.dependencies import (
     get_ticket_repository,
     get_ticket_service,
 )
-from app.exceptions import AuthenticationError, EntityNotFoundError
+from app.exceptions import AuthenticationError, EntityNotFoundError, ServiceException
 from app.logger import get_logger
 from app.models import _build_meta
 from app.notifications import NotificationDispatcher
@@ -278,9 +278,15 @@ async def bulk_update_tickets(
     request: Request,
     service: TicketService = Depends(get_ticket_service),
 ):
-    """Bulk-update status for multiple tickets. Admin only. Creates audit FollowUps."""
+    """Bulk-update status for multiple tickets. Admin only. Creates audit FollowUps.
+
+    Returns how many tickets were updated and, for each one that was not, its id
+    and the reason. Expected domain errors (not found, forbidden, invalid change)
+    are reported per ticket; anything unexpected propagates instead of being hidden.
+    """
     dispatcher = await _build_dispatcher(request)
     updated = 0
+    failed: list[dict[str, str]] = []
     for ticket_id in payload.ids:
         try:
             await service.update_ticket(
@@ -290,9 +296,10 @@ async def bulk_update_tickets(
                 dispatcher=dispatcher,
             )
             updated += 1
-        except Exception:
-            pass
-    return {"updated": updated}
+        except ServiceException as exc:
+            logger.warning("Bulk update skipped ticket %s: %s", ticket_id, exc.message)
+            failed.append({"id": str(ticket_id), "error": exc.message})
+    return {"updated": updated, "failed": failed}
 
 
 @router.post("/admin/reminders/run", tags=["Admin"])
